@@ -17,17 +17,25 @@ serve(async (req) => {
     const credoSecretKey = Deno.env.get('CREDO_SECRET_KEY')!;
 
     const authHeader = req.headers.get('Authorization');
+    console.log('Auth header present:', !!authHeader);
+    
     if (!authHeader) {
       throw new Error('Missing authorization header');
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey, {
       global: { headers: { Authorization: authHeader } },
+      auth: { persistSession: false }
     });
 
     const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    console.log('User error:', userError);
+    console.log('User:', user ? 'exists' : 'null');
+    
     if (userError || !user) {
-      throw new Error('Unauthorized');
+      console.error('Auth failed:', userError?.message || 'No user');
+      throw new Error(`Unauthorized: ${userError?.message || 'No user found'}`);
     }
 
     const { amount } = await req.json();
