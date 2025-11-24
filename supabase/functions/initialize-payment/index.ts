@@ -62,6 +62,7 @@ serve(async (req) => {
     const reference = `ATAP-${Date.now()}-${user.id.substring(0, 8)}`;
 
     // Initialize payment with Credo
+    console.log('Calling Credo API...');
     const credoResponse = await fetch('https://api.credocentral.com/transaction/initialize', {
       method: 'POST',
       headers: {
@@ -82,15 +83,23 @@ serve(async (req) => {
       }),
     });
 
+    console.log('Credo response status:', credoResponse.status);
+    const responseText = await credoResponse.text();
+    console.log('Credo response body:', responseText);
+
     if (!credoResponse.ok) {
-      const errorText = await credoResponse.text();
-      console.error('Credo API error:', errorText);
-      throw new Error(`Payment initialization failed: ${errorText}`);
+      console.error('Credo API error:', responseText);
+      throw new Error(`Payment initialization failed: ${responseText || 'Invalid API credentials or configuration'}`);
     }
 
-    const credoData = await credoResponse.json();
+    let credoData;
+    try {
+      credoData = JSON.parse(responseText);
+    } catch (e) {
+      throw new Error('Invalid response from payment gateway');
+    }
 
-    console.log('Credo response:', credoData);
+    console.log('Credo data parsed:', credoData);
 
     // Store payment record in database
     const { error: paymentError } = await supabaseAdmin
