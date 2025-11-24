@@ -58,8 +58,18 @@ const Payment = () => {
     setLoading(true);
 
     try {
+      // Get current session token
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('Please log in again');
+      }
+
       const { data, error } = await supabase.functions.invoke('initialize-payment', {
-        body: { amount: REGISTRATION_FEE }
+        body: { amount: REGISTRATION_FEE },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
       });
 
       if (error) throw error;
