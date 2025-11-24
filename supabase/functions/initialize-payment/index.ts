@@ -13,7 +13,7 @@ serve(async (req) => {
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const credoSecretKey = Deno.env.get('CREDO_SECRET_KEY')!;
 
     const authHeader = req.headers.get('Authorization');
@@ -23,9 +23,9 @@ serve(async (req) => {
       throw new Error('Missing authorization header');
     }
 
-    const supabase = createClient(supabaseUrl, supabaseKey, {
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       global: { headers: { Authorization: authHeader } },
-      auth: { persistSession: false }
+      auth: { autoRefreshToken: false, persistSession: false }
     });
 
     const { data: { user }, error: userError } = await supabase.auth.getUser();
