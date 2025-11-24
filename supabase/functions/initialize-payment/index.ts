@@ -66,7 +66,7 @@ serve(async (req) => {
     const credoResponse = await fetch('https://api.credocentral.com/transaction/initialize', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${credoSecretKey}`,
+        'Authorization': credoSecretKey,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
