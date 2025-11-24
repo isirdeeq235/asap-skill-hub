@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CreditCard, ArrowLeft, Info } from "lucide-react";
+import { Loader2, CreditCard, ArrowLeft, CheckCircle, Info } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const REGISTRATION_FEE = 5000; // ₦5,000
@@ -14,6 +14,7 @@ const Payment = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [userId, setUserId] = useState<string>("");
+  const [paymentStatus, setPaymentStatus] = useState<string | null>(null);
 
   useEffect(() => {
     checkUser();
@@ -37,12 +38,15 @@ const Payment = () => {
         .eq("student_id", user.id)
         .maybeSingle();
 
-      if (payment && payment.status === "success") {
-        toast({
-          title: "Already Paid",
-          description: "You have already completed the payment",
-        });
-        navigate("/student/dashboard");
+      if (payment) {
+        setPaymentStatus(payment.status);
+        if (payment.status === "success") {
+          toast({
+            title: "Already Paid",
+            description: "You have already completed the payment",
+          });
+          setTimeout(() => navigate("/student/dashboard"), 2000);
+        }
       }
     } catch (error) {
       console.error("Error checking user:", error);
@@ -54,41 +58,58 @@ const Payment = () => {
     setLoading(true);
 
     try {
-      // Generate payment reference
-      const reference = `ATAP-${Date.now()}-${userId.substring(0, 8)}`;
-
-      // TODO: Integrate with Credo payment gateway
-      // For now, we'll create a pending payment record
-      // In production, you would redirect to Credo's payment page here
-
-      const { error } = await supabase.from("payments").insert({
-        student_id: userId,
-        amount: REGISTRATION_FEE,
-        reference,
-        status: "pending",
+      const { data, error } = await supabase.functions.invoke('initialize-payment', {
+        body: { amount: REGISTRATION_FEE }
       });
 
       if (error) throw error;
 
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      if (!data?.authorization_url) {
+        throw new Error('Failed to get payment URL');
+      }
+
+      console.log('Payment initialized:', data);
+
       toast({
-        title: "Payment Integration Required",
-        description: "Credo payment gateway integration is pending. Payment record created as pending.",
+        title: "Redirecting to Payment",
+        description: "You will be redirected to Credo payment page...",
       });
 
-      // In production, this would redirect to Credo's payment page
-      // window.location.href = credoPaymentUrl;
+      // Redirect to Credo payment page
+      window.location.href = data.authorization_url;
 
-      navigate("/student/dashboard");
     } catch (error: any) {
+      console.error('Payment error:', error);
       toast({
-        title: "Payment failed",
-        description: error.message || "An error occurred",
+        title: "Payment initialization failed",
+        description: error.message || "An error occurred while initializing payment",
         variant: "destructive",
       });
-    } finally {
       setLoading(false);
     }
   };
+
+  if (paymentStatus === "success") {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md shadow-card">
+          <CardContent className="pt-6 text-center space-y-4">
+            <div className="mx-auto w-16 h-16 rounded-full bg-success/10 flex items-center justify-center">
+              <CheckCircle className="w-8 h-8 text-success" />
+            </div>
+            <h2 className="text-2xl font-bold">Payment Successful!</h2>
+            <p className="text-muted-foreground">
+              Your registration fee has been paid. Redirecting to dashboard...
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -104,16 +125,27 @@ const Payment = () => {
       <div className="container mx-auto px-4 py-8 max-w-2xl">
         <Card className="shadow-card">
           <CardHeader>
-            <CardTitle>Payment</CardTitle>
-            <CardDescription>Complete your registration fee payment</CardDescription>
+            <CardTitle>Registration Payment</CardTitle>
+            <CardDescription>Complete your skill acquisition program registration fee</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <Alert>
-              <Info className="h-4 w-4" />
-              <AlertDescription>
-                Credo payment gateway integration is required to complete this feature. Once integrated, you'll be redirected to a secure payment page.
-              </AlertDescription>
-            </Alert>
+            {paymentStatus === "pending" && (
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  You have a pending payment. Please complete it to proceed.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {paymentStatus === "failed" && (
+              <Alert variant="destructive">
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  Your previous payment attempt failed. Please try again.
+                </AlertDescription>
+              </Alert>
+            )}
 
             <div className="bg-gradient-card rounded-lg p-6 space-y-4">
               <div className="flex justify-between items-center">
@@ -140,7 +172,7 @@ const Payment = () => {
                 </li>
                 <li className="flex items-start">
                   <span className="mr-2">•</span>
-                  You'll receive a confirmation email
+                  You can start your skill training program
                 </li>
               </ul>
             </div>
@@ -151,13 +183,21 @@ const Payment = () => {
               size="lg"
               disabled={loading}
             >
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              <CreditCard className="w-4 h-4 mr-2" />
-              Proceed to Payment
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  Pay ₦{REGISTRATION_FEE.toLocaleString()} Now
+                </>
+              )}
             </Button>
 
             <p className="text-xs text-center text-muted-foreground">
-              Secure payment powered by Credo Payment Gateway
+              🔒 Secure payment powered by Credo Payment Gateway
             </p>
           </CardContent>
         </Card>
