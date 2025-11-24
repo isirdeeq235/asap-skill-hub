@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { BookOpen, GraduationCap, Users, Award } from "lucide-react";
+import { BookOpen, GraduationCap, Users, Award, Shield } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Index = () => {
@@ -37,14 +37,20 @@ const Index = () => {
                 <Link to="/admin/auth">Admin Login</Link>
               </Button>
             </div>
-            <div className="mt-4">
+            <div className="mt-6 p-4 bg-primary-foreground/10 backdrop-blur-sm rounded-lg border border-primary-foreground/20">
+              <p className="text-sm text-primary-foreground/90 mb-3 text-center">
+                First time setting up? Create your admin account
+              </p>
               <Button 
                 asChild 
-                size="sm" 
-                variant="ghost"
-                className="text-primary-foreground/80 hover:text-primary-foreground"
+                size="lg" 
+                variant="secondary"
+                className="w-full sm:w-auto"
               >
-                <Link to="/admin/setup">First Time? Setup Admin Access</Link>
+                <Link to="/admin/setup">
+                  <Shield className="mr-2 h-5 w-5" />
+                  Admin Setup
+                </Link>
               </Button>
             </div>
           </div>
