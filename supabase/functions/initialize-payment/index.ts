@@ -13,22 +13,24 @@ serve(async (req) => {
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const credoSecretKey = Deno.env.get('CREDO_SECRET_KEY')!;
 
+    // Get JWT from Authorization header
     const authHeader = req.headers.get('Authorization');
     
     if (!authHeader) {
       throw new Error('Missing authorization header');
     }
 
-    // Use anon key with user's auth token for authentication
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-      auth: { persistSession: false }
-    });
+    // Extract JWT token
+    const jwt = authHeader.replace('Bearer ', '');
 
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    // Create Supabase client with service role
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Get user from JWT
+    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(jwt);
     
     if (userError || !user) {
       console.error('Auth failed:', userError?.message || 'No user');
@@ -46,7 +48,7 @@ serve(async (req) => {
     console.log('Initializing payment for user:', user.id, 'amount:', amount);
 
     // Get user profile
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
       .select('email, full_name, phone')
       .eq('user_id', user.id)
@@ -91,7 +93,7 @@ serve(async (req) => {
     console.log('Credo response:', credoData);
 
     // Store payment record in database
-    const { error: paymentError } = await supabase
+    const { error: paymentError } = await supabaseAdmin
       .from('payments')
       .insert({
         student_id: user.id,
