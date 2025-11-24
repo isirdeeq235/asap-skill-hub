@@ -120,7 +120,7 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         reference: reference,
-        authorization_url: credoData.data?.authorization_url || credoData.authorization_url,
+        authorization_url: credoData.data?.authorizationUrl || credoData.authorizationUrl,
         access_code: credoData.data?.access_code || credoData.access_code,
       }),
       {
