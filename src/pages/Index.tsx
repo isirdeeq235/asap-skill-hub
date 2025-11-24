@@ -37,6 +37,16 @@ const Index = () => {
                 <Link to="/admin/auth">Admin Login</Link>
               </Button>
             </div>
+            <div className="mt-4">
+              <Button 
+                asChild 
+                size="sm" 
+                variant="ghost"
+                className="text-primary-foreground/80 hover:text-primary-foreground"
+              >
+                <Link to="/admin/setup">First Time? Setup Admin Access</Link>
+              </Button>
+            </div>
           </div>
         </div>
       </section>
