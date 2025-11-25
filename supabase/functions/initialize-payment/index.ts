@@ -122,6 +122,9 @@ serve(async (req) => {
     // Generate unique reference
     const reference = `ATAP-${Date.now()}-${user.id.substring(0, 8)}`;
 
+    // Get the app URL from environment or construct it
+    const appUrl = Deno.env.get('APP_URL') || supabaseUrl.replace('fgagmcvovrrpebpijflg.supabase.co', 'a3b59232-0ce9-4e5b-8e7e-3e6c9d63bfc9.lovableproject.com');
+    
     // Initialize payment with Credo
     console.log('Calling Credo API...');
     const credoResponse = await fetch('https://api.credocentral.com/transaction/initialize', {
@@ -135,7 +138,7 @@ serve(async (req) => {
         currency: 'NGN',
         email: profile.email,
         reference: reference,
-        callback_url: `${supabaseUrl}/functions/v1/payment-webhook`,
+        callback_url: `${appUrl}/student/dashboard`,
         metadata: {
           user_id: user.id,
           full_name: profile.full_name,
