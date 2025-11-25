@@ -7,18 +7,44 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, CreditCard, ArrowLeft, CheckCircle, Info } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
-const REGISTRATION_FEE = 5000; // ₦5,000
-
 const Payment = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [userId, setUserId] = useState<string>("");
   const [paymentStatus, setPaymentStatus] = useState<string | null>(null);
+  const [registrationFee, setRegistrationFee] = useState<number | null>(null);
+  const [fetchingFee, setFetchingFee] = useState(true);
 
   useEffect(() => {
     checkUser();
+    fetchRegistrationFee();
   }, []);
+
+  const fetchRegistrationFee = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('app_settings')
+        .select('value')
+        .eq('key', 'registration_fee')
+        .maybeSingle();
+
+      if (error) throw error;
+      
+      if (data) {
+        setRegistrationFee(Number(data.value));
+      }
+    } catch (error) {
+      console.error('Error fetching registration fee:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load registration fee. Please refresh the page.",
+        variant: "destructive",
+      });
+    } finally {
+      setFetchingFee(false);
+    }
+  };
 
   const checkUser = async () => {
     try {
@@ -55,6 +81,15 @@ const Payment = () => {
   };
 
   const handlePayment = async () => {
+    if (!registrationFee) {
+      toast({
+        title: "Error",
+        description: "Registration fee not loaded. Please refresh the page.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -66,7 +101,7 @@ const Payment = () => {
       }
 
       const { data, error } = await supabase.functions.invoke('initialize-payment', {
-        body: { amount: REGISTRATION_FEE },
+        body: { amount: registrationFee },
         headers: {
           Authorization: `Bearer ${session.access_token}`
         }
@@ -113,6 +148,14 @@ const Payment = () => {
       setLoading(false);
     }
   };
+
+  if (loading || fetchingFee || !userId) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   if (paymentStatus === "success") {
     return (
@@ -171,7 +214,7 @@ const Payment = () => {
             <div className="bg-gradient-card rounded-lg p-6 space-y-4">
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Registration Fee:</span>
-                <span className="text-2xl font-bold">₦{REGISTRATION_FEE.toLocaleString()}</span>
+                <span className="text-2xl font-bold">₦{registrationFee?.toLocaleString()}</span>
               </div>
               <div className="pt-4 border-t border-border">
                 <p className="text-sm text-muted-foreground">
@@ -202,7 +245,7 @@ const Payment = () => {
               onClick={handlePayment} 
               className="w-full" 
               size="lg"
-              disabled={loading}
+              disabled={loading || !registrationFee}
             >
               {loading ? (
                 <>
@@ -212,7 +255,7 @@ const Payment = () => {
               ) : (
                 <>
                   <CreditCard className="w-4 h-4 mr-2" />
-                  Pay ₦{REGISTRATION_FEE.toLocaleString()} Now
+                  Pay ₦{registrationFee?.toLocaleString()} Now
                 </>
               )}
             </Button>
