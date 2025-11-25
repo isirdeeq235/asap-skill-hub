@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { Resend } from "https://esm.sh/resend@4.0.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,9 +16,11 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const credoSecretKey = Deno.env.get('CREDO_SECRET_KEY')!;
+    const resendApiKey = Deno.env.get('RESEND_API_KEY')!;
 
     // Create Supabase client with service role for admin access
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const resend = new Resend(resendApiKey);
 
     const payload = await req.json();
     console.log('Webhook received:', JSON.stringify(payload, null, 2));
@@ -60,13 +63,15 @@ serve(async (req) => {
     const isSuccessful = paymentStatus === 'success' || paymentStatus === 'successful';
 
     // Update payment status in database
-    const { error: updateError } = await supabase
+    const { data: paymentData, error: updateError } = await supabase
       .from('payments')
       .update({
         status: isSuccessful ? 'success' : 'failed',
         updated_at: new Date().toISOString(),
       })
-      .eq('reference', reference);
+      .eq('reference', reference)
+      .select('student_id, amount')
+      .single();
 
     if (updateError) {
       console.error('Failed to update payment:', updateError);
@@ -74,6 +79,84 @@ serve(async (req) => {
     }
 
     console.log(`Payment ${reference} updated to status: ${isSuccessful ? 'success' : 'failed'}`);
+
+    // Send email notification if payment is successful
+    if (isSuccessful && paymentData) {
+      try {
+        // Get student profile information
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('email, full_name')
+          .eq('user_id', paymentData.student_id)
+          .single();
+
+        if (profile?.email) {
+          const paymentDate = new Date().toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          });
+
+          await resend.emails.send({
+            from: 'ATAP Registration <onboarding@resend.dev>',
+            to: [profile.email],
+            subject: 'Payment Successful - ATAP Registration',
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h1 style="color: #22c55e;">Payment Successful!</h1>
+                
+                <p>Dear ${profile.full_name},</p>
+                
+                <p>Your payment for ATAP Registration has been successfully processed.</p>
+                
+                <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                  <h2 style="margin-top: 0;">Payment Receipt</h2>
+                  <table style="width: 100%;">
+                    <tr>
+                      <td><strong>Reference:</strong></td>
+                      <td>${reference}</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Amount:</strong></td>
+                      <td>₦${paymentData.amount.toLocaleString()}</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Date:</strong></td>
+                      <td>${paymentDate}</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Status:</strong></td>
+                      <td style="color: #22c55e;"><strong>Success</strong></td>
+                    </tr>
+                  </table>
+                </div>
+                
+                <div style="background-color: #dbeafe; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                  <h2 style="margin-top: 0; color: #1e40af;">Next Steps</h2>
+                  <ol style="line-height: 1.8;">
+                    <li>Log in to your dashboard at <a href="${supabaseUrl.replace('.supabase.co', '.lovable.app')}">your student portal</a></li>
+                    <li>Complete the Skill Acquisition Form</li>
+                    <li>Upload your passport photograph</li>
+                    <li>Submit the form to complete your registration</li>
+                  </ol>
+                </div>
+                
+                <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
+                  If you have any questions, please contact the ATAP administration.
+                </p>
+                
+                <p style="margin-top: 30px;">Best regards,<br><strong>ATAP Team</strong></p>
+              </div>
+            `,
+          });
+
+          console.log(`Email sent to ${profile.email} for payment ${reference}`);
+        }
+      } catch (emailError) {
+        console.error('Failed to send email notification:', emailError);
+        // Don't throw - payment was successful, email is just a notification
+      }
+    }
 
     return new Response(
       JSON.stringify({ success: true, message: 'Webhook processed' }),
