@@ -39,6 +39,45 @@ const StudentDashboard = () => {
     checkUser();
   }, []);
 
+  // Auto-refresh payment status every 30 seconds if pending
+  useEffect(() => {
+    if (!payment || payment.status !== "pending") {
+      return;
+    }
+
+    const interval = setInterval(async () => {
+      console.log("Auto-checking payment status...");
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) return;
+
+        const { data: paymentData } = await supabase
+          .from("payments")
+          .select("*")
+          .eq("student_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (paymentData && paymentData.status !== payment.status) {
+          setPayment(paymentData);
+          
+          if (paymentData.status === "success") {
+            toast({
+              title: "Payment Confirmed!",
+              description: "Your payment has been verified successfully.",
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Error auto-checking payment:", error);
+      }
+    }, 30000); // Check every 30 seconds
+
+    return () => clearInterval(interval);
+  }, [payment?.status]);
+
   const checkUser = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
