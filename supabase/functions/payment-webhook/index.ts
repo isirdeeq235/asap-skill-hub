@@ -65,12 +65,14 @@ serve(async (req) => {
     }
 
     const event = payload.event || payload.status;
-    const reference = payload.reference || payload.data?.reference;
-    const status = payload.status || payload.data?.status;
+    // Credo sends the reference as businessRef in the data object
+    const reference = payload.data?.businessRef || payload.reference || payload.data?.reference;
+    const status = payload.data?.status || payload.status;
 
     console.log('Processing event:', event, 'reference:', reference, 'status:', status);
 
     if (!reference) {
+      console.error('Missing payment reference. Payload:', JSON.stringify(payload, null, 2));
       throw new Error('Missing payment reference');
     }
 
