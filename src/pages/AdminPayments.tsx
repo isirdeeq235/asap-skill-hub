@@ -33,6 +33,44 @@ const AdminPayments = () => {
     checkAdmin();
   }, []);
 
+  useEffect(() => {
+    // Set up real-time subscription for payment updates
+    const channel = supabase
+      .channel('admin-payments')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'payments'
+        },
+        (payload) => {
+          console.log('Real-time payment update:', payload);
+          
+          // Refresh payments when any change occurs
+          fetchPayments();
+          
+          // Show toast notification for new payments
+          if (payload.eventType === 'INSERT') {
+            toast({
+              title: "New Payment Received",
+              description: "A new payment has been recorded",
+            });
+          } else if (payload.eventType === 'UPDATE') {
+            toast({
+              title: "Payment Updated",
+              description: "A payment status has been updated",
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   const checkAdmin = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -275,9 +313,15 @@ const AdminPayments = () => {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Payment Records</CardTitle>
-                <CardDescription>View and manage all payment transactions</CardDescription>
+              <div className="flex items-center gap-3">
+                <div>
+                  <CardTitle>Payment Records</CardTitle>
+                  <CardDescription>View and manage all payment transactions</CardDescription>
+                </div>
+                <Badge variant="outline" className="bg-success/10 text-success border-success">
+                  <span className="w-2 h-2 bg-success rounded-full mr-2 animate-pulse"></span>
+                  Live
+                </Badge>
               </div>
               <Button onClick={exportToCSV} variant="outline">
                 <Download className="w-4 h-4 mr-2" />

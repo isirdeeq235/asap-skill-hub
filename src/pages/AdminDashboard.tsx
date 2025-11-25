@@ -36,6 +36,39 @@ const AdminDashboard = () => {
     checkAdmin();
   }, []);
 
+  useEffect(() => {
+    // Set up real-time subscription for payment updates
+    const channel = supabase
+      .channel('admin-dashboard')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'payments'
+        },
+        (payload) => {
+          console.log('Real-time payment update:', payload);
+          
+          // Refresh student data when payment changes
+          fetchStudents();
+          
+          // Show toast notification for new payments
+          if (payload.eventType === 'INSERT') {
+            toast({
+              title: "New Payment",
+              description: "A student has made a new payment",
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   const checkAdmin = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
