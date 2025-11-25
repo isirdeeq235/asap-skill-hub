@@ -22,7 +22,40 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const resend = new Resend(resendApiKey);
 
-    const payload = await req.json();
+    // Handle empty or invalid request bodies
+    const contentType = req.headers.get('content-type') || '';
+    let payload;
+    
+    if (contentType.includes('application/json')) {
+      const text = await req.text();
+      if (!text || text.trim() === '') {
+        console.log('Empty request body received');
+        return new Response(
+          JSON.stringify({ success: true, message: 'Empty payload received' }),
+          {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+      
+      try {
+        payload = JSON.parse(text);
+      } catch (parseError) {
+        console.error('Failed to parse JSON:', parseError, 'Body:', text);
+        throw new Error('Invalid JSON payload');
+      }
+    } else {
+      console.log('Non-JSON content type received:', contentType);
+      return new Response(
+        JSON.stringify({ success: true, message: 'Non-JSON payload received' }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+    
     console.log('Webhook received:', JSON.stringify(payload, null, 2));
 
     // Verify webhook signature (Credo sends a signature in headers)
