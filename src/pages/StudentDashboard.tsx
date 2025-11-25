@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, LogOut, CreditCard, FileText, CheckCircle, XCircle, Clock } from "lucide-react";
+import { Loader2, LogOut, CreditCard, FileText, CheckCircle, XCircle, Clock, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Profile {
@@ -30,6 +30,7 @@ const StudentDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
+  const [verifying, setVerifying] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [payment, setPayment] = useState<Payment | null>(null);
   const [skillForm, setSkillForm] = useState<SkillForm | null>(null);
@@ -85,6 +86,66 @@ const StudentDashboard = () => {
       console.error("Error fetching data:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleVerifyPayment = async () => {
+    setVerifying(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) return;
+
+      // Re-fetch payment status from database
+      const { data: paymentData, error } = await supabase
+        .from("payments")
+        .select("*")
+        .eq("student_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        throw error;
+      }
+
+      if (paymentData) {
+        setPayment(paymentData);
+        
+        if (paymentData.status === "success") {
+          toast({
+            title: "Payment Verified!",
+            description: "Your payment has been confirmed successfully.",
+          });
+        } else if (paymentData.status === "pending") {
+          toast({
+            title: "Payment Still Pending",
+            description: "Your payment is being processed. Please wait a few minutes.",
+            variant: "default",
+          });
+        } else {
+          toast({
+            title: "Payment Status Updated",
+            description: `Current status: ${paymentData.status}`,
+            variant: "destructive",
+          });
+        }
+      } else {
+        toast({
+          title: "No Payment Found",
+          description: "No payment record found for your account.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error verifying payment:", error);
+      toast({
+        title: "Verification Failed",
+        description: "Failed to verify payment status. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setVerifying(false);
     }
   };
 
@@ -177,10 +238,32 @@ const StudentDashboard = () => {
                 <p className="text-muted-foreground">
                   You need to complete the payment to access the skill acquisition form.
                 </p>
-                <Button onClick={() => navigate("/student/payment")} className="w-full md:w-auto">
-                  <CreditCard className="w-4 h-4 mr-2" />
-                  Pay Now
-                </Button>
+                <div className="flex flex-col md:flex-row gap-3">
+                  <Button onClick={() => navigate("/student/payment")} className="w-full md:w-auto">
+                    <CreditCard className="w-4 h-4 mr-2" />
+                    Pay Now
+                  </Button>
+                  {payment && payment.status === "pending" && (
+                    <Button 
+                      onClick={handleVerifyPayment} 
+                      variant="outline" 
+                      className="w-full md:w-auto"
+                      disabled={verifying}
+                    >
+                      {verifying ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Verifying...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="w-4 h-4 mr-2" />
+                          Verify Payment
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
               </div>
             ) : (
               <div className="space-y-2">
