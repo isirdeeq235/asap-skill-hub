@@ -31,9 +31,13 @@ const AdminDashboard = () => {
     paid: 0,
     submitted: 0,
   });
+  const [registrationFee, setRegistrationFee] = useState("");
+  const [newFee, setNewFee] = useState("");
+  const [savingFee, setSavingFee] = useState(false);
 
   useEffect(() => {
     checkAdmin();
+    fetchRegistrationFee();
   }, []);
 
   useEffect(() => {
@@ -156,6 +160,67 @@ const AdminDashboard = () => {
     }
   };
 
+  const fetchRegistrationFee = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('app_settings')
+        .select('value')
+        .eq('key', 'registration_fee')
+        .single();
+
+      if (error) throw error;
+      
+      if (data) {
+        setRegistrationFee(data.value);
+        setNewFee(data.value);
+      }
+    } catch (error) {
+      console.error('Error fetching registration fee:', error);
+    }
+  };
+
+  const handleUpdateFee = async () => {
+    if (!newFee || isNaN(Number(newFee)) || Number(newFee) <= 0) {
+      toast({
+        title: "Invalid Amount",
+        description: "Please enter a valid positive number",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSavingFee(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      
+      const { error } = await supabase
+        .from('app_settings')
+        .update({ 
+          value: newFee,
+          updated_by: userData?.user?.id,
+          updated_at: new Date().toISOString()
+        })
+        .eq('key', 'registration_fee');
+
+      if (error) throw error;
+
+      setRegistrationFee(newFee);
+      toast({
+        title: "Success",
+        description: "Registration fee updated successfully",
+      });
+    } catch (error) {
+      console.error('Error updating registration fee:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update registration fee",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingFee(false);
+    }
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate("/");
@@ -246,6 +311,48 @@ const AdminDashboard = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Settings Section */}
+        <Card className="mb-8 shadow-card">
+          <CardHeader>
+            <CardTitle>Settings</CardTitle>
+            <CardDescription>Configure application settings</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Registration Fee (₦)
+                </label>
+                <div className="flex gap-4 items-center">
+                  <Input
+                    type="number"
+                    value={newFee}
+                    onChange={(e) => setNewFee(e.target.value)}
+                    placeholder="Enter fee amount"
+                    className="max-w-xs"
+                  />
+                  <Button 
+                    onClick={handleUpdateFee}
+                    disabled={savingFee || newFee === registrationFee}
+                  >
+                    {savingFee ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      "Save Changes"
+                    )}
+                  </Button>
+                </div>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Current fee: ₦{registrationFee ? Number(registrationFee).toLocaleString() : '...'}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Students Table */}
         <Card className="shadow-card">
