@@ -74,6 +74,17 @@ const Payment = () => {
 
       if (error) throw error;
 
+      // Check for rate limiting
+      if (data?.error && data?.retryAfter) {
+        toast({
+          title: "Too Many Attempts",
+          description: data.message || `Please wait ${data.retryAfter} minute(s) before trying again.`,
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
       if (data?.error) {
         throw new Error(data.error);
       }

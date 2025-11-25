@@ -39,6 +39,67 @@ serve(async (req) => {
 
     console.log('User authenticated:', user.id);
 
+    // Rate limiting: Check if user has exceeded payment attempts
+    const RATE_LIMIT_WINDOW = 60; // 60 minutes
+    const MAX_ATTEMPTS = 5; // 5 attempts per hour
+    const endpoint = 'initialize-payment';
+    const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW * 60 * 1000);
+
+    // Get or create rate limit record
+    const { data: existingLimit } = await supabaseAdmin
+      .from('rate_limits')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('endpoint', endpoint)
+      .gte('window_start', windowStart.toISOString())
+      .maybeSingle();
+
+    if (existingLimit) {
+      if (existingLimit.request_count >= MAX_ATTEMPTS) {
+        const resetTime = new Date(existingLimit.window_start);
+        resetTime.setMinutes(resetTime.getMinutes() + RATE_LIMIT_WINDOW);
+        const minutesRemaining = Math.ceil((resetTime.getTime() - Date.now()) / 60000);
+        
+        console.log(`Rate limit exceeded for user ${user.id}`);
+        return new Response(
+          JSON.stringify({ 
+            error: 'Too many payment attempts. Please try again later.',
+            retryAfter: minutesRemaining,
+            message: `You have exceeded the maximum number of payment attempts. Please wait ${minutesRemaining} minute(s) before trying again.`
+          }),
+          {
+            status: 429,
+            headers: { 
+              ...corsHeaders, 
+              'Content-Type': 'application/json',
+              'Retry-After': String(minutesRemaining * 60)
+            },
+          }
+        );
+      }
+
+      // Increment request count
+      await supabaseAdmin
+        .from('rate_limits')
+        .update({ 
+          request_count: existingLimit.request_count + 1,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', existingLimit.id);
+    } else {
+      // Create new rate limit record
+      await supabaseAdmin
+        .from('rate_limits')
+        .insert({
+          user_id: user.id,
+          endpoint: endpoint,
+          request_count: 1,
+          window_start: new Date().toISOString(),
+        });
+    }
+
+    console.log('Rate limit check passed for user:', user.id);
+
     const { amount } = await req.json();
 
     if (!amount || amount <= 0) {
