@@ -274,21 +274,25 @@ const AdminDashboard = () => {
 
       if (data.success && data.payment_status === 'success') {
         toast({
-          title: "Payment Verified",
+          title: "Payment Verified Successfully",
           description: `Payment has been verified with Credo and marked as successful`,
         });
-      } else if (data.success && data.payment_status === 'failed') {
+        await fetchStudents();
+      } else if (data.verified_with_credo) {
+        // Payment exists on Credo but is not successful (cancelled, failed, pending, etc.)
         toast({
           title: "Payment Not Successful",
-          description: `Credo reports this payment as ${data.credo_status}. Payment marked as failed.`,
+          description: data.message || `Credo status: ${data.credo_status}. Payment remains pending.`,
           variant: "destructive",
         });
       } else {
-        throw new Error('Verification failed');
+        // Payment not found on Credo or API error
+        toast({
+          title: "Payment Not Found",
+          description: data.message || "Payment not found on Credo. It may have been cancelled.",
+          variant: "destructive",
+        });
       }
-
-      // Refresh data
-      await fetchStudents();
     } catch (error: any) {
       console.error("Error verifying payment:", error);
       toast({
