@@ -70,11 +70,20 @@ const StudentAuth = () => {
       if (error) throw error;
 
       if (data.user) {
-        toast({
-          title: "Account created successfully!",
-          description: "Redirecting to your dashboard...",
-        });
-        navigate("/student/dashboard");
+        // Check if email confirmation is required
+        if (data.user.identities && data.user.identities.length === 0) {
+          toast({
+            title: "Account created successfully!",
+            description: "Please check your email to verify your account before logging in.",
+            duration: 7000,
+          });
+        } else {
+          toast({
+            title: "Account created successfully!",
+            description: "Please check your email to verify your account before logging in.",
+            duration: 7000,
+          });
+        }
       }
     } catch (error: any) {
       if (error instanceof z.ZodError) {
@@ -190,6 +199,11 @@ const StudentAuth = () => {
             </TabsContent>
 
             <TabsContent value="signup">
+              <div className="mb-4 p-3 bg-muted rounded-lg border border-border">
+                <p className="text-sm text-muted-foreground">
+                  📧 After registration, check your email to verify your account before logging in.
+                </p>
+              </div>
               <form onSubmit={handleSignup} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="fullName">Full Name</Label>
