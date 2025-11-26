@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, ArrowLeft, Search, CheckCircle, XCircle, Clock, RefreshCw, Download } from "lucide-react";
+import { Loader2, ArrowLeft, Search, CheckCircle, XCircle, Clock, RefreshCw, Download, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface PaymentData {
@@ -227,6 +227,35 @@ const AdminPayments = () => {
     }
   };
 
+  const handleDeletePayment = async (paymentId: string, reference: string) => {
+    if (!confirm("Are you sure you want to delete this pending payment record? This action cannot be undone.")) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("payments")
+        .delete()
+        .eq("id", paymentId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Payment Deleted",
+        description: `Payment record ${reference} has been removed`,
+      });
+
+      await fetchPayments();
+    } catch (error) {
+      console.error("Error deleting payment:", error);
+      toast({
+        title: "Delete Failed",
+        description: "Failed to delete payment record",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getPaymentBadge = (status: string) => {
     switch (status) {
       case "success":
@@ -427,6 +456,15 @@ const AdminPayments = () => {
                                 >
                                   <XCircle className="w-3 h-3 mr-1" />
                                   Fail
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleDeletePayment(payment.id, payment.reference)}
+                                  className="text-destructive hover:text-destructive"
+                                >
+                                  <Trash2 className="w-3 h-3 mr-1" />
+                                  Delete
                                 </Button>
                               </>
                             )}
