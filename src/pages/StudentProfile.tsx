@@ -152,9 +152,24 @@ const StudentProfile = () => {
 
       if (error) throw error;
 
+      // Send email notification
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          await supabase.functions.invoke('send-password-change-email', {
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+            },
+          });
+        }
+      } catch (emailError) {
+        console.error('Failed to send notification email:', emailError);
+        // Don't throw - password was changed successfully
+      }
+
       toast({
         title: "Password Updated",
-        description: "Your password has been changed successfully.",
+        description: "Your password has been changed successfully. A confirmation email has been sent.",
       });
 
       // Clear password form
