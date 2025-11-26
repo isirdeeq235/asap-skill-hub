@@ -16,8 +16,10 @@ interface Profile {
 }
 
 interface Payment {
+  id: string;
   status: string;
   amount: number;
+  reference: string;
   created_at: string;
 }
 
@@ -33,6 +35,7 @@ const StudentDashboard = () => {
   const [verifying, setVerifying] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [payment, setPayment] = useState<Payment | null>(null);
+  const [paymentHistory, setPaymentHistory] = useState<Payment[]>([]);
   const [skillForm, setSkillForm] = useState<SkillForm | null>(null);
 
   useEffect(() => {
@@ -98,7 +101,7 @@ const StudentDashboard = () => {
         setProfile(profileData);
       }
 
-      // Fetch payment status
+      // Fetch latest payment status
       const { data: paymentData } = await supabase
         .from("payments")
         .select("*")
@@ -109,6 +112,17 @@ const StudentDashboard = () => {
 
       if (paymentData) {
         setPayment(paymentData);
+      }
+
+      // Fetch payment history
+      const { data: historyData } = await supabase
+        .from("payments")
+        .select("*")
+        .eq("student_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (historyData) {
+        setPaymentHistory(historyData);
       }
 
       // Fetch skill form
@@ -314,6 +328,40 @@ const StudentDashboard = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Payment History Card */}
+        {paymentHistory.length > 0 && (
+          <Card className="mb-6 shadow-card">
+            <CardHeader>
+              <CardTitle>Payment History</CardTitle>
+              <CardDescription>All your payment transactions</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {paymentHistory.map((payment) => (
+                  <div key={payment.id} className="flex items-center justify-between p-4 border border-border rounded-lg">
+                    <div className="space-y-1">
+                      <p className="font-medium">₦{payment.amount.toLocaleString()}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(payment.created_at).toLocaleDateString()} at {new Date(payment.created_at).toLocaleTimeString()}
+                      </p>
+                      <p className="text-xs text-muted-foreground">Ref: {payment.reference}</p>
+                    </div>
+                    <div>
+                      {payment.status === "success" ? (
+                        <Badge variant="default" className="bg-success">Paid</Badge>
+                      ) : payment.status === "failed" ? (
+                        <Badge variant="destructive">Failed</Badge>
+                      ) : (
+                        <Badge variant="secondary">Pending</Badge>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Skill Form Card */}
         <Card className="shadow-card">
