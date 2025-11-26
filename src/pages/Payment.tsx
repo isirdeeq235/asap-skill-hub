@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CreditCard, ArrowLeft, CheckCircle, Info } from "lucide-react";
+import { Loader2, CreditCard, ArrowLeft, CheckCircle, Info, Download } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { QRCodeSVG } from "qrcode.react";
 
 const Payment = () => {
   const navigate = useNavigate();
@@ -13,6 +14,7 @@ const Payment = () => {
   const [loading, setLoading] = useState(false);
   const [userId, setUserId] = useState<string>("");
   const [paymentStatus, setPaymentStatus] = useState<string | null>(null);
+  const [paymentReference, setPaymentReference] = useState<string | null>(null);
   const [registrationFee, setRegistrationFee] = useState<number | null>(null);
   const [fetchingFee, setFetchingFee] = useState(true);
 
@@ -60,18 +62,18 @@ const Payment = () => {
       // Check if already paid
       const { data: payment } = await supabase
         .from("payments")
-        .select("status")
+        .select("status, reference")
         .eq("student_id", user.id)
         .maybeSingle();
 
       if (payment) {
         setPaymentStatus(payment.status);
+        setPaymentReference(payment.reference);
         if (payment.status === "success") {
           toast({
             title: "Already Paid",
             description: "You have already completed the payment",
           });
-          setTimeout(() => navigate("/student/dashboard"), 2000);
         }
       }
     } catch (error) {
@@ -157,18 +159,83 @@ const Payment = () => {
     );
   }
 
+  const downloadQRCode = () => {
+    const svg = document.getElementById("payment-qr-code");
+    if (!svg) return;
+    
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    const img = new Image();
+    
+    img.onload = () => {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx?.drawImage(img, 0, 0);
+      const pngFile = canvas.toDataURL("image/png");
+      
+      const downloadLink = document.createElement("a");
+      downloadLink.download = `payment-receipt-${paymentReference}.png`;
+      downloadLink.href = pngFile;
+      downloadLink.click();
+    };
+    
+    img.src = "data:image/svg+xml;base64," + btoa(svgData);
+  };
+
   if (paymentStatus === "success") {
+    const verificationUrl = `${window.location.origin}/verify-payment/${paymentReference}`;
+    
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-md shadow-card">
-          <CardContent className="pt-6 text-center space-y-4">
-            <div className="mx-auto w-16 h-16 rounded-full bg-success/10 flex items-center justify-center">
-              <CheckCircle className="w-8 h-8 text-success" />
+        <Card className="w-full max-w-lg shadow-card">
+          <CardContent className="pt-6 space-y-6">
+            <div className="text-center space-y-4">
+              <div className="mx-auto w-16 h-16 rounded-full bg-success/10 flex items-center justify-center">
+                <CheckCircle className="w-8 h-8 text-success" />
+              </div>
+              <h2 className="text-2xl font-bold">Payment Successful!</h2>
+              <p className="text-muted-foreground">
+                Your registration fee has been paid successfully.
+              </p>
             </div>
-            <h2 className="text-2xl font-bold">Payment Successful!</h2>
-            <p className="text-muted-foreground">
-              Your registration fee has been paid. Redirecting to dashboard...
-            </p>
+
+            <div className="bg-muted/50 rounded-lg p-6 space-y-4">
+              <h3 className="font-semibold text-center">Payment Receipt QR Code</h3>
+              <p className="text-sm text-muted-foreground text-center">
+                Anyone can scan this code to verify your payment is genuine
+              </p>
+              <div className="flex justify-center bg-white p-4 rounded-lg">
+                <QRCodeSVG 
+                  id="payment-qr-code"
+                  value={verificationUrl} 
+                  size={200}
+                  level="H"
+                  includeMargin
+                />
+              </div>
+              <div className="text-center space-y-2">
+                <p className="text-xs text-muted-foreground break-all">
+                  Reference: {paymentReference}
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={downloadQRCode}
+                  className="w-full"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Download QR Code
+                </Button>
+              </div>
+            </div>
+
+            <Button 
+              onClick={() => navigate("/student/dashboard")}
+              className="w-full"
+            >
+              Go to Dashboard
+            </Button>
           </CardContent>
         </Card>
       </div>
