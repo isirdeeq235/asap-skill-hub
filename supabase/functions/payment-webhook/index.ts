@@ -58,11 +58,49 @@ serve(async (req) => {
     
     console.log('Webhook received:', JSON.stringify(payload, null, 2));
 
-    // Verify webhook signature (Credo sends a signature in headers)
+    // Verify webhook signature - REJECT unsigned requests
     const signature = req.headers.get('x-credo-signature');
     if (!signature) {
-      console.warn('Missing webhook signature');
+      console.error('Missing webhook signature - rejecting request');
+      return new Response(
+        JSON.stringify({ error: 'Missing webhook signature' }),
+        { 
+          status: 401, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
     }
+
+    // Verify HMAC signature
+    const encoder = new TextEncoder();
+    const keyData = encoder.encode(credoSecretKey);
+    const messageData = encoder.encode(JSON.stringify(payload));
+    
+    const cryptoKey = await crypto.subtle.importKey(
+      'raw',
+      keyData,
+      { name: 'HMAC', hash: 'SHA-512' },
+      false,
+      ['sign']
+    );
+    
+    const signatureBuffer = await crypto.subtle.sign('HMAC', cryptoKey, messageData);
+    const expectedSignature = Array.from(new Uint8Array(signatureBuffer))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+
+    if (signature !== expectedSignature) {
+      console.error('Invalid webhook signature - rejecting request');
+      return new Response(
+        JSON.stringify({ error: 'Invalid webhook signature' }),
+        { 
+          status: 401, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    console.log('Webhook signature verified successfully');
 
     const event = payload.event || payload.status;
     // Credo sends the reference as businessRef in the data object
