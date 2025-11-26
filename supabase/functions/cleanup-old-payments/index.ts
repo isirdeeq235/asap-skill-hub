@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    console.log('Starting cleanup of old pending payments...');
+    console.log('Starting cleanup of old pending, cancelled, and failed payments...');
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -23,13 +23,13 @@ Deno.serve(async (req) => {
     const twentyFourHoursAgo = new Date();
     twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
 
-    console.log('Deleting pending payments older than:', twentyFourHoursAgo.toISOString());
+    console.log('Deleting pending, cancelled, and failed payments older than:', twentyFourHoursAgo.toISOString());
 
-    // Delete pending payments older than 24 hours
+    // Delete pending, cancelled, and failed payments older than 24 hours
     const { data, error } = await supabase
       .from('payments')
       .delete()
-      .eq('status', 'pending')
+      .in('status', ['pending', 'cancelled', 'failed'])
       .lt('created_at', twentyFourHoursAgo.toISOString())
       .select();
 
@@ -39,12 +39,12 @@ Deno.serve(async (req) => {
     }
 
     const deletedCount = data?.length || 0;
-    console.log(`Successfully deleted ${deletedCount} old pending payment(s)`);
+    console.log(`Successfully deleted ${deletedCount} old payment(s) (pending/cancelled/failed)`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Cleaned up ${deletedCount} old pending payment(s)`,
+        message: `Cleaned up ${deletedCount} old payment(s) (pending/cancelled/failed)`,
         deletedCount,
         cutoffTime: twentyFourHoursAgo.toISOString(),
       }),
