@@ -150,24 +150,42 @@ const AdminPayments = () => {
   const handleVerifyPayment = async (paymentId: string, reference: string) => {
     setVerifyingPayment(paymentId);
     try {
-      const { error } = await supabase
-        .from("payments")
-        .update({ status: "success", updated_at: new Date().toISOString() })
-        .eq("id", paymentId);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('No active session');
+      }
+
+      // Call edge function to verify with Credo
+      const { data, error } = await supabase.functions.invoke('verify-payment-status', {
+        body: { reference },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
 
       if (error) throw error;
 
-      toast({
-        title: "Payment Verified",
-        description: `Payment ${reference} has been marked as successful`,
-      });
+      if (data.success && data.payment_status === 'success') {
+        toast({
+          title: "Payment Verified",
+          description: `Payment ${reference} has been verified with Credo and marked as successful`,
+        });
+      } else if (data.success && data.payment_status === 'failed') {
+        toast({
+          title: "Payment Not Successful",
+          description: `Credo reports this payment as ${data.credo_status}. Payment marked as failed.`,
+          variant: "destructive",
+        });
+      } else {
+        throw new Error('Verification failed');
+      }
 
       await fetchPayments();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error verifying payment:", error);
       toast({
         title: "Verification Failed",
-        description: "Failed to verify payment. Please try again.",
+        description: error.message || "Failed to verify payment with Credo. Please try again.",
         variant: "destructive",
       });
     } finally {
