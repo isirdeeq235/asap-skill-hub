@@ -48,9 +48,6 @@ serve(async (req) => {
       throw new Error('Payment reference is required');
     }
 
-    console.log('Verifying payment with Credo API:', reference);
-
-    // Verify payment with Credo API
     const verifyResponse = await fetch(
       `https://api.credocentral.com/transaction/verify/${reference}`,
       {
@@ -62,8 +59,23 @@ serve(async (req) => {
     );
 
     if (!verifyResponse.ok) {
-      console.error('Credo API error:', await verifyResponse.text());
-      throw new Error('Failed to verify payment with Credo');
+      const errorText = await verifyResponse.text();
+      console.error('Credo API error:', errorText);
+      
+      // Return info about the payment without updating database
+      return new Response(
+        JSON.stringify({
+          success: false,
+          verified_with_credo: false,
+          message: 'Payment not found or cancelled on Credo',
+          credo_error: errorText,
+          reference: reference,
+        }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     const verifyData = await verifyResponse.json();
@@ -72,37 +84,59 @@ serve(async (req) => {
     const paymentStatus = verifyData.data?.status || verifyData.status;
     const isSuccessful = paymentStatus === 'success' || paymentStatus === 'successful';
 
-    // Update payment status in database based on Credo response
-    const { data: paymentData, error: updateError } = await supabase
-      .from('payments')
-      .update({
-        status: isSuccessful ? 'success' : 'failed',
-        updated_at: new Date().toISOString(),
-      })
-      .eq('reference', reference)
-      .select('*')
-      .single();
+    // Only update database if payment is successful
+    if (isSuccessful) {
+      const { data: paymentData, error: updateError } = await supabase
+        .from('payments')
+        .update({
+          status: 'success',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('reference', reference)
+        .select('*')
+        .single();
 
-    if (updateError) {
-      console.error('Failed to update payment:', updateError);
-      throw updateError;
-    }
-
-    console.log(`Payment ${reference} updated to status: ${isSuccessful ? 'success' : 'failed'}`);
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        payment_status: isSuccessful ? 'success' : 'failed',
-        verified_with_credo: true,
-        credo_status: paymentStatus,
-        payment: paymentData,
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      if (updateError) {
+        console.error('Failed to update payment:', updateError);
+        throw updateError;
       }
-    );
+
+      console.log(`Payment ${reference} updated to status: success`);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          payment_status: 'success',
+          verified_with_credo: true,
+          credo_status: paymentStatus,
+          payment: paymentData,
+          message: 'Payment verified successfully',
+        }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    } else {
+      // For failed or cancelled payments, don't update database
+      // Just return the status from Credo
+      console.log(`Payment ${reference} status from Credo: ${paymentStatus} - Not updating database`);
+
+      return new Response(
+        JSON.stringify({
+          success: false,
+          payment_status: paymentStatus,
+          verified_with_credo: true,
+          credo_status: paymentStatus,
+          reference: reference,
+          message: `Payment status: ${paymentStatus}. No database update for unsuccessful payments.`,
+        }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
 
   } catch (error: any) {
     console.error('Error verifying payment:', error);
