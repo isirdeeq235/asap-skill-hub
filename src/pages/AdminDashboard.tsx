@@ -318,6 +318,19 @@ const AdminDashboard = () => {
       </header>
 
       <div className="container mx-auto px-4 py-8">
+        {/* Quick Actions */}
+        <Card className="mb-8 shadow-card">
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => navigate("/admin/forms")} className="w-full sm:w-auto">
+              <FileText className="w-4 h-4 mr-2" />
+              View Submitted Forms
+            </Button>
+          </CardContent>
+        </Card>
+
         {/* Stats */}
         <div className="grid md:grid-cols-3 gap-6 mb-8">
           <Card className="shadow-card">
