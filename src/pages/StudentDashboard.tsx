@@ -4,8 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, LogOut, CreditCard, FileText, CheckCircle, XCircle, Clock, RefreshCw } from "lucide-react";
+import { Loader2, LogOut, CreditCard, FileText, CheckCircle, XCircle, Clock, RefreshCw, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import jsPDF from "jspdf";
 
 interface Profile {
   full_name: string;
@@ -207,6 +208,151 @@ const StudentDashboard = () => {
     navigate("/");
   };
 
+  const handleDownloadReceipt = () => {
+    if (!payment || !profile) return;
+
+    const doc = new jsPDF();
+    
+    // Colors
+    const primaryColor = [41, 128, 185]; // Blue
+    const textColor = [44, 62, 80]; // Dark gray
+    const lightGray = [236, 240, 241];
+
+    // Header with background
+    doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.rect(0, 0, 210, 50, 'F');
+
+    // Title
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(28);
+    doc.setFont(undefined, 'bold');
+    doc.text('PAYMENT RECEIPT', 105, 25, { align: 'center' });
+    
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'normal');
+    doc.text('Skill Acquisition Registration', 105, 35, { align: 'center' });
+
+    // Reset text color
+    doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+
+    // Receipt details box
+    doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
+    doc.rect(15, 60, 180, 25, 'F');
+    
+    doc.setFontSize(11);
+    doc.setFont(undefined, 'bold');
+    doc.text('Receipt Number:', 20, 70);
+    doc.setFont(undefined, 'normal');
+    doc.text(payment.reference, 60, 70);
+    
+    doc.setFont(undefined, 'bold');
+    doc.text('Date:', 20, 78);
+    doc.setFont(undefined, 'normal');
+    doc.text(new Date(payment.created_at).toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    }), 60, 78);
+
+    // Student Information Section
+    doc.setFontSize(14);
+    doc.setFont(undefined, 'bold');
+    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.text('Student Information', 20, 100);
+    
+    doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.setLineWidth(0.5);
+    doc.line(20, 102, 190, 102);
+
+    doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+    doc.setFontSize(11);
+    doc.setFont(undefined, 'bold');
+    doc.text('Full Name:', 20, 112);
+    doc.setFont(undefined, 'normal');
+    doc.text(profile.full_name, 60, 112);
+
+    doc.setFont(undefined, 'bold');
+    doc.text('Matric Number:', 20, 122);
+    doc.setFont(undefined, 'normal');
+    doc.text(profile.matric_number, 60, 122);
+
+    doc.setFont(undefined, 'bold');
+    doc.text('Department:', 20, 132);
+    doc.setFont(undefined, 'normal');
+    doc.text(profile.department, 60, 132);
+
+    doc.setFont(undefined, 'bold');
+    doc.text('Email:', 20, 142);
+    doc.setFont(undefined, 'normal');
+    doc.text(profile.email, 60, 142);
+
+    doc.setFont(undefined, 'bold');
+    doc.text('Phone:', 20, 152);
+    doc.setFont(undefined, 'normal');
+    doc.text(profile.phone, 60, 152);
+
+    // Payment Details Section
+    doc.setFontSize(14);
+    doc.setFont(undefined, 'bold');
+    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.text('Payment Details', 20, 172);
+    
+    doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.line(20, 174, 190, 174);
+
+    doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+    doc.setFontSize(11);
+    doc.setFont(undefined, 'bold');
+    doc.text('Description:', 20, 184);
+    doc.setFont(undefined, 'normal');
+    doc.text('Skill Acquisition Registration Fee', 60, 184);
+
+    doc.setFont(undefined, 'bold');
+    doc.text('Payment Method:', 20, 194);
+    doc.setFont(undefined, 'normal');
+    doc.text('Online Payment', 60, 194);
+
+    doc.setFont(undefined, 'bold');
+    doc.text('Transaction ID:', 20, 204);
+    doc.setFont(undefined, 'normal');
+    doc.text(payment.reference, 60, 204);
+
+    doc.setFont(undefined, 'bold');
+    doc.text('Status:', 20, 214);
+    doc.setFont(undefined, 'normal');
+    doc.setTextColor(46, 125, 50); // Green
+    doc.text('PAID', 60, 214);
+
+    // Amount box with highlight
+    doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
+    doc.rect(15, 225, 180, 20, 'F');
+    
+    doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+    doc.setFontSize(14);
+    doc.setFont(undefined, 'bold');
+    doc.text('Total Amount:', 20, 237);
+    doc.setFontSize(16);
+    doc.text(`₦${payment.amount.toLocaleString()}`, 170, 237, { align: 'right' });
+
+    // Footer
+    doc.setFontSize(9);
+    doc.setFont(undefined, 'normal');
+    doc.setTextColor(128, 128, 128);
+    doc.text('This is a computer-generated receipt and requires no signature.', 105, 265, { align: 'center' });
+    doc.text('For inquiries, please contact the administration office.', 105, 270, { align: 'center' });
+    
+    // Generated timestamp
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, 105, 280, { align: 'center' });
+
+    // Save the PDF
+    doc.save(`Receipt_${payment.reference}.pdf`);
+    
+    toast({
+      title: "Receipt Downloaded",
+      description: "Your payment receipt has been downloaded successfully.",
+    });
+  };
+
   const getPaymentStatusBadge = () => {
     if (!payment) {
       return <Badge variant="secondary" className="flex items-center gap-1"><Clock className="w-3 h-3" /> Not Paid</Badge>;
@@ -319,11 +465,24 @@ const StudentDashboard = () => {
                 </div>
               </div>
             ) : (
-              <div className="space-y-2">
-                <p className="text-success font-medium">Payment completed successfully!</p>
-                <p className="text-sm text-muted-foreground">
-                  Amount: ₦{payment.amount.toLocaleString()}
-                </p>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <p className="text-success font-medium">Payment completed successfully!</p>
+                  <p className="text-sm text-muted-foreground">
+                    Amount: ₦{payment.amount.toLocaleString()}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Paid on: {new Date(payment.created_at).toLocaleDateString()} at {new Date(payment.created_at).toLocaleTimeString()}
+                  </p>
+                </div>
+                <Button 
+                  variant="outline" 
+                  onClick={handleDownloadReceipt}
+                  className="w-full md:w-auto"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Download Receipt
+                </Button>
               </div>
             )}
           </CardContent>
@@ -340,16 +499,139 @@ const StudentDashboard = () => {
               <div className="space-y-3">
                 {paymentHistory.map((payment) => (
                   <div key={payment.id} className="flex items-center justify-between p-4 border border-border rounded-lg">
-                    <div className="space-y-1">
+                    <div className="flex-1 space-y-1">
                       <p className="font-medium">₦{payment.amount.toLocaleString()}</p>
                       <p className="text-sm text-muted-foreground">
                         {new Date(payment.created_at).toLocaleDateString()} at {new Date(payment.created_at).toLocaleTimeString()}
                       </p>
                       <p className="text-xs text-muted-foreground">Ref: {payment.reference}</p>
                     </div>
-                    <div>
+                    <div className="flex items-center gap-3">
                       {payment.status === "success" ? (
-                        <Badge variant="default" className="bg-success">Paid</Badge>
+                        <>
+                          <Badge variant="default" className="bg-success">Paid</Badge>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              const successPayment = payment;
+                              const doc = new jsPDF();
+                              
+                              const primaryColor = [41, 128, 185];
+                              const textColor = [44, 62, 80];
+                              const lightGray = [236, 240, 241];
+
+                              doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+                              doc.rect(0, 0, 210, 50, 'F');
+
+                              doc.setTextColor(255, 255, 255);
+                              doc.setFontSize(28);
+                              doc.setFont(undefined, 'bold');
+                              doc.text('PAYMENT RECEIPT', 105, 25, { align: 'center' });
+                              
+                              doc.setFontSize(12);
+                              doc.setFont(undefined, 'normal');
+                              doc.text('Skill Acquisition Registration', 105, 35, { align: 'center' });
+
+                              doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+
+                              doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
+                              doc.rect(15, 60, 180, 25, 'F');
+                              
+                              doc.setFontSize(11);
+                              doc.setFont(undefined, 'bold');
+                              doc.text('Receipt Number:', 20, 70);
+                              doc.setFont(undefined, 'normal');
+                              doc.text(successPayment.reference, 60, 70);
+                              
+                              doc.setFont(undefined, 'bold');
+                              doc.text('Date:', 20, 78);
+                              doc.setFont(undefined, 'normal');
+                              doc.text(new Date(successPayment.created_at).toLocaleDateString('en-US', { 
+                                year: 'numeric', 
+                                month: 'long', 
+                                day: 'numeric' 
+                              }), 60, 78);
+
+                              doc.setFontSize(14);
+                              doc.setFont(undefined, 'bold');
+                              doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+                              doc.text('Student Information', 20, 100);
+                              
+                              doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+                              doc.setLineWidth(0.5);
+                              doc.line(20, 102, 190, 102);
+
+                              doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+                              doc.setFontSize(11);
+                              doc.setFont(undefined, 'bold');
+                              doc.text('Full Name:', 20, 112);
+                              doc.setFont(undefined, 'normal');
+                              doc.text(profile?.full_name || '', 60, 112);
+
+                              doc.setFont(undefined, 'bold');
+                              doc.text('Matric Number:', 20, 122);
+                              doc.setFont(undefined, 'normal');
+                              doc.text(profile?.matric_number || '', 60, 122);
+
+                              doc.setFont(undefined, 'bold');
+                              doc.text('Department:', 20, 132);
+                              doc.setFont(undefined, 'normal');
+                              doc.text(profile?.department || '', 60, 132);
+
+                              doc.setFontSize(14);
+                              doc.setFont(undefined, 'bold');
+                              doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+                              doc.text('Payment Details', 20, 152);
+                              
+                              doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+                              doc.line(20, 154, 190, 154);
+
+                              doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+                              doc.setFontSize(11);
+                              doc.setFont(undefined, 'bold');
+                              doc.text('Description:', 20, 164);
+                              doc.setFont(undefined, 'normal');
+                              doc.text('Skill Acquisition Registration Fee', 60, 164);
+
+                              doc.setFont(undefined, 'bold');
+                              doc.text('Transaction ID:', 20, 174);
+                              doc.setFont(undefined, 'normal');
+                              doc.text(successPayment.reference, 60, 174);
+
+                              doc.setFont(undefined, 'bold');
+                              doc.text('Status:', 20, 184);
+                              doc.setFont(undefined, 'normal');
+                              doc.setTextColor(46, 125, 50);
+                              doc.text('PAID', 60, 184);
+
+                              doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
+                              doc.rect(15, 195, 180, 20, 'F');
+                              
+                              doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+                              doc.setFontSize(14);
+                              doc.setFont(undefined, 'bold');
+                              doc.text('Total Amount:', 20, 207);
+                              doc.setFontSize(16);
+                              doc.text(`₦${successPayment.amount.toLocaleString()}`, 170, 207, { align: 'right' });
+
+                              doc.setFontSize(9);
+                              doc.setFont(undefined, 'normal');
+                              doc.setTextColor(128, 128, 128);
+                              doc.text('This is a computer-generated receipt and requires no signature.', 105, 235, { align: 'center' });
+                              doc.text(`Generated on: ${new Date().toLocaleString()}`, 105, 245, { align: 'center' });
+
+                              doc.save(`Receipt_${successPayment.reference}.pdf`);
+                              
+                              toast({
+                                title: "Receipt Downloaded",
+                                description: "Your payment receipt has been downloaded successfully.",
+                              });
+                            }}
+                          >
+                            <Download className="w-4 h-4" />
+                          </Button>
+                        </>
                       ) : payment.status === "failed" ? (
                         <Badge variant="destructive">Failed</Badge>
                       ) : (
