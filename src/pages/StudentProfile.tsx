@@ -15,6 +15,14 @@ const profileSchema = z.object({
   department: z.string().min(2, "Department is required"),
 });
 
+const passwordSchema = z.object({
+  newPassword: z.string().min(6, "Password must be at least 6 characters"),
+  confirmPassword: z.string().min(6, "Password must be at least 6 characters"),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
 interface Profile {
   full_name: string;
   email: string;
@@ -28,6 +36,7 @@ const StudentProfile = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [profile, setProfile] = useState<Profile>({
     full_name: "",
@@ -35,6 +44,10 @@ const StudentProfile = () => {
     phone: "",
     matric_number: "",
     department: "",
+  });
+  const [passwordForm, setPasswordForm] = useState({
+    newPassword: "",
+    confirmPassword: "",
   });
 
   useEffect(() => {
@@ -122,6 +135,49 @@ const StudentProfile = () => {
       }
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setChangingPassword(true);
+
+    try {
+      // Validate password fields
+      passwordSchema.parse(passwordForm);
+
+      const { error } = await supabase.auth.updateUser({
+        password: passwordForm.newPassword,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Password Updated",
+        description: "Your password has been changed successfully.",
+      });
+
+      // Clear password form
+      setPasswordForm({
+        newPassword: "",
+        confirmPassword: "",
+      });
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        toast({
+          title: "Validation Error",
+          description: error.errors[0].message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Password Change Failed",
+          description: error.message || "Failed to change password",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setChangingPassword(false);
     }
   };
 
@@ -238,6 +294,58 @@ const StudentProfile = () => {
                   disabled={saving}
                 >
                   Cancel
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+
+        {/* Password Change Card */}
+        <Card className="shadow-card mt-6">
+          <CardHeader>
+            <CardTitle>Change Password</CardTitle>
+            <CardDescription>
+              Update your password. You will remain logged in after changing your password.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handlePasswordChange} className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="newPassword">New Password</Label>
+                <Input
+                  id="newPassword"
+                  type="password"
+                  value={passwordForm.newPassword}
+                  onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                  placeholder="Enter new password (min. 6 characters)"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={passwordForm.confirmPassword}
+                  onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                  placeholder="Re-enter new password"
+                  required
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <Button type="submit" disabled={changingPassword} className="flex-1">
+                  {changingPassword && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Change Password
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setPasswordForm({ newPassword: "", confirmPassword: "" })}
+                  disabled={changingPassword}
+                >
+                  Clear
                 </Button>
               </div>
             </form>
