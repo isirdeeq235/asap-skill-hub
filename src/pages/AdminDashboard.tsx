@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, LogOut, Search, Users, DollarSign, FileText, CheckCircle, RefreshCw, RotateCcw } from "lucide-react";
+import { Loader2, LogOut, Search, Users, DollarSign, FileText, CheckCircle, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface StudentData {
@@ -323,14 +323,10 @@ const AdminDashboard = () => {
           <CardHeader>
             <CardTitle>Quick Actions</CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-wrap gap-3">
+          <CardContent>
             <Button onClick={() => navigate("/admin/forms")} className="w-full sm:w-auto">
               <FileText className="w-4 h-4 mr-2" />
               View Submitted Forms
-            </Button>
-            <Button onClick={() => navigate("/admin/refunds")} variant="outline" className="w-full sm:w-auto">
-              <RotateCcw className="w-4 h-4 mr-2" />
-              Manage Refunds
             </Button>
           </CardContent>
         </Card>
