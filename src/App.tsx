@@ -10,6 +10,7 @@ import StudentProfile from "./pages/StudentProfile";
 import AdminAuth from "./pages/AdminAuth";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminForms from "./pages/AdminForms";
+import AdminPayments from "./pages/AdminPayments";
 import SkillForm from "./pages/SkillForm";
 import Payment from "./pages/Payment";
 import ResetPassword from "./pages/ResetPassword";
@@ -34,6 +35,7 @@ const App = () => (
           <Route path="/admin/auth" element={<AdminAuth />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/forms" element={<AdminForms />} />
+          <Route path="/admin/payments" element={<AdminPayments />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/update-password" element={<UpdatePassword />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
