@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, LogOut, Search, Users, DollarSign, FileText, CheckCircle, Receipt, RefreshCw } from "lucide-react";
+import { Loader2, LogOut, Search, Users, DollarSign, FileText, CheckCircle, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface StudentData {
@@ -318,19 +318,6 @@ const AdminDashboard = () => {
       </header>
 
       <div className="container mx-auto px-4 py-8">
-        {/* Quick Actions */}
-        <Card className="mb-8 shadow-card">
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Button onClick={() => navigate("/admin/payments")} className="w-full sm:w-auto">
-              <Receipt className="w-4 h-4 mr-2" />
-              Manage Payments
-            </Button>
-          </CardContent>
-        </Card>
-
         {/* Stats */}
         <div className="grid md:grid-cols-3 gap-6 mb-8">
           <Card className="shadow-card">
