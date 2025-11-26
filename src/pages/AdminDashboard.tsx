@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, LogOut, Search, Users, DollarSign, FileText, CheckCircle, Receipt } from "lucide-react";
+import { Loader2, LogOut, Search, Users, DollarSign, FileText, CheckCircle, Receipt, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface StudentData {
@@ -17,6 +17,7 @@ interface StudentData {
   department: string;
   phone: string;
   payment_status: string;
+  payment_reference: string | null;
   form_submitted: boolean;
 }
 
@@ -34,6 +35,7 @@ const AdminDashboard = () => {
   const [registrationFee, setRegistrationFee] = useState("");
   const [newFee, setNewFee] = useState("");
   const [savingFee, setSavingFee] = useState(false);
+  const [verifyingPayment, setVerifyingPayment] = useState<string | null>(null);
 
   useEffect(() => {
     checkAdmin();
@@ -120,10 +122,19 @@ const AdminDashboard = () => {
 
       if (!profiles) return;
 
-      // Fetch payments
+      // Fetch payments (latest for each student)
       const { data: payments } = await supabase
         .from("payments")
-        .select("student_id, status");
+        .select("student_id, status, reference, created_at")
+        .order("created_at", { ascending: false });
+
+      // Get latest payment for each student
+      const latestPayments = payments?.reduce((acc, payment) => {
+        if (!acc[payment.student_id] || new Date(payment.created_at) > new Date(acc[payment.student_id].created_at)) {
+          acc[payment.student_id] = payment;
+        }
+        return acc;
+      }, {} as Record<string, any>);
 
       // Fetch skill forms
       const { data: forms } = await supabase
@@ -132,7 +143,7 @@ const AdminDashboard = () => {
 
       // Combine data
       const studentsData: StudentData[] = profiles.map((profile) => {
-        const payment = payments?.find((p) => p.student_id === profile.user_id);
+        const payment = latestPayments?.[profile.user_id];
         const form = forms?.find((f) => f.student_id === profile.user_id);
 
         return {
@@ -143,6 +154,7 @@ const AdminDashboard = () => {
           department: profile.department,
           phone: profile.phone,
           payment_status: payment?.status || "pending",
+          payment_reference: payment?.reference || null,
           form_submitted: !!form,
         };
       });
@@ -232,6 +244,46 @@ const AdminDashboard = () => {
       student.matric_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
       student.department.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const handleVerifyPayment = async (studentId: string, reference: string | null) => {
+    if (!reference) {
+      toast({
+        title: "No Payment Reference",
+        description: "This student hasn't made a payment yet",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setVerifyingPayment(studentId);
+    try {
+      // Update payment status to success
+      const { error } = await supabase
+        .from("payments")
+        .update({ status: "success" })
+        .eq("reference", reference)
+        .eq("student_id", studentId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Payment Verified",
+        description: "Payment status has been updated to success",
+      });
+
+      // Refresh data
+      await fetchStudents();
+    } catch (error) {
+      console.error("Error verifying payment:", error);
+      toast({
+        title: "Verification Failed",
+        description: "Failed to verify payment. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setVerifyingPayment(null);
+    }
+  };
 
   const getPaymentBadge = (status: string) => {
     switch (status) {
@@ -380,6 +432,7 @@ const AdminDashboard = () => {
                     <TableHead>Email</TableHead>
                     <TableHead>Payment</TableHead>
                     <TableHead>Form</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -395,6 +448,28 @@ const AdminDashboard = () => {
                           <CheckCircle className="h-5 w-5 text-success" />
                         ) : (
                           <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {student.payment_status === "pending" && student.payment_reference && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleVerifyPayment(student.user_id, student.payment_reference)}
+                            disabled={verifyingPayment === student.user_id}
+                          >
+                            {verifyingPayment === student.user_id ? (
+                              <>
+                                <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                Verifying...
+                              </>
+                            ) : (
+                              <>
+                                <RefreshCw className="w-3 h-3 mr-1" />
+                                Verify
+                              </>
+                            )}
+                          </Button>
                         )}
                       </TableCell>
                     </TableRow>
