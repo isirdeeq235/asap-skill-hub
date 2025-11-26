@@ -15,6 +15,7 @@ import SkillForm from "./pages/SkillForm";
 import Payment from "./pages/Payment";
 import ResetPassword from "./pages/ResetPassword";
 import UpdatePassword from "./pages/UpdatePassword";
+import VerifyPayment from "./pages/VerifyPayment";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,7 @@ const App = () => (
           <Route path="/admin/payments" element={<AdminPayments />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/update-password" element={<UpdatePassword />} />
+          <Route path="/verify-payment/:reference" element={<VerifyPayment />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
