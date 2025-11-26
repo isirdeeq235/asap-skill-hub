@@ -64,11 +64,13 @@ const SkillForm = () => {
 
       setUserId(user.id);
 
-      // Check payment status
+      // Check payment status - get the latest payment
       const { data: payment } = await supabase
         .from("payments")
         .select("status")
         .eq("student_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (!payment || payment.status !== "success") {
