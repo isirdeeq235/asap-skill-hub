@@ -50,6 +50,10 @@ export type Database = {
           created_at: string | null
           id: string
           reference: string
+          refund_amount: number | null
+          refund_reason: string | null
+          refunded_at: string | null
+          refunded_by: string | null
           status: string
           student_id: string
           updated_at: string | null
@@ -59,6 +63,10 @@ export type Database = {
           created_at?: string | null
           id?: string
           reference: string
+          refund_amount?: number | null
+          refund_reason?: string | null
+          refunded_at?: string | null
+          refunded_by?: string | null
           status?: string
           student_id: string
           updated_at?: string | null
@@ -68,6 +76,10 @@ export type Database = {
           created_at?: string | null
           id?: string
           reference?: string
+          refund_amount?: number | null
+          refund_reason?: string | null
+          refunded_at?: string | null
+          refunded_by?: string | null
           status?: string
           student_id?: string
           updated_at?: string | null

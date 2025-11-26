@@ -9,6 +9,7 @@ import StudentDashboard from "./pages/StudentDashboard";
 import AdminAuth from "./pages/AdminAuth";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminForms from "./pages/AdminForms";
+import AdminRefunds from "./pages/AdminRefunds";
 import SkillForm from "./pages/SkillForm";
 import Payment from "./pages/Payment";
 import NotFound from "./pages/NotFound";
@@ -30,6 +31,7 @@ const App = () => (
           <Route path="/admin/auth" element={<AdminAuth />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/forms" element={<AdminForms />} />
+          <Route path="/admin/refunds" element={<AdminRefunds />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
