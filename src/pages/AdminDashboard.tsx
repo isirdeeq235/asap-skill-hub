@@ -323,10 +323,14 @@ const AdminDashboard = () => {
           <CardHeader>
             <CardTitle>Quick Actions</CardTitle>
           </CardHeader>
-          <CardContent>
-            <Button onClick={() => navigate("/admin/forms")} className="w-full sm:w-auto">
+          <CardContent className="flex flex-wrap gap-3">
+            <Button onClick={() => navigate("/admin/forms")} variant="default">
               <FileText className="w-4 h-4 mr-2" />
               View Submitted Forms
+            </Button>
+            <Button onClick={() => navigate("/admin/payments")} variant="outline">
+              <DollarSign className="w-4 h-4 mr-2" />
+              Manage Payments
             </Button>
           </CardContent>
         </Card>
