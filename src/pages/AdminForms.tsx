@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, LogOut, Search, Download, FileText, ArrowLeft } from "lucide-react";
+import { Loader2, LogOut, Search, Download, FileText, ArrowLeft, Grid, List } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface FormData {
@@ -30,6 +30,7 @@ const AdminForms = () => {
   const [loading, setLoading] = useState(true);
   const [forms, setForms] = useState<FormData[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [viewMode, setViewMode] = useState<"table" | "gallery">("table");
 
   useEffect(() => {
     checkAdmin();
@@ -231,7 +232,7 @@ const AdminForms = () => {
           </CardHeader>
         </Card>
 
-        {/* Forms Table */}
+        {/* Forms Table/Gallery */}
         <Card className="shadow-card">
           <CardHeader>
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -239,10 +240,32 @@ const AdminForms = () => {
                 <CardTitle>All Submitted Forms</CardTitle>
                 <CardDescription>View and export student skill forms</CardDescription>
               </div>
-              <Button onClick={exportToCSV} disabled={filteredForms.length === 0}>
-                <Download className="w-4 h-4 mr-2" />
-                Export to CSV
-              </Button>
+              <div className="flex items-center gap-2">
+                <div className="flex border border-border rounded-md">
+                  <Button
+                    variant={viewMode === "table" ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setViewMode("table")}
+                    className="rounded-r-none"
+                  >
+                    <List className="w-4 h-4 mr-2" />
+                    Table
+                  </Button>
+                  <Button
+                    variant={viewMode === "gallery" ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setViewMode("gallery")}
+                    className="rounded-l-none"
+                  >
+                    <Grid className="w-4 h-4 mr-2" />
+                    Gallery
+                  </Button>
+                </div>
+                <Button onClick={exportToCSV} disabled={filteredForms.length === 0}>
+                  <Download className="w-4 h-4 mr-2" />
+                  Export to CSV
+                </Button>
+              </div>
             </div>
             <div className="relative mt-4">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -255,51 +278,131 @@ const AdminForms = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Student Name</TableHead>
-                    <TableHead>Matric Number</TableHead>
-                    <TableHead>Department</TableHead>
-                    <TableHead>Skill Choice</TableHead>
-                    <TableHead>Level</TableHead>
-                    <TableHead>Submitted</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredForms.length === 0 ? (
+            {viewMode === "table" ? (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                        {searchQuery ? "No forms found matching your search" : "No forms submitted yet"}
-                      </TableCell>
+                      <TableHead>Student Name</TableHead>
+                      <TableHead>Matric Number</TableHead>
+                      <TableHead>Department</TableHead>
+                      <TableHead>Skill Choice</TableHead>
+                      <TableHead>Level</TableHead>
+                      <TableHead>Submitted</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
-                  ) : (
-                    filteredForms.map((form) => (
-                      <TableRow key={form.id}>
-                        <TableCell className="font-medium">{form.student_name}</TableCell>
-                        <TableCell>{form.matric_number}</TableCell>
-                        <TableCell>{form.department}</TableCell>
-                        <TableCell>{form.skill_choice}</TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">{form.level}</Badge>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredForms.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                          {searchQuery ? "No forms found matching your search" : "No forms submitted yet"}
                         </TableCell>
-                        <TableCell>
-                          {new Date(form.submitted_at).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredForms.map((form) => (
+                        <TableRow key={form.id}>
+                          <TableCell className="font-medium">{form.student_name}</TableCell>
+                          <TableCell>{form.matric_number}</TableCell>
+                          <TableCell>{form.department}</TableCell>
+                          <TableCell>{form.skill_choice}</TableCell>
+                          <TableCell>
+                            <Badge variant="secondary">{form.level}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            {new Date(form.submitted_at).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                toast({
+                                  title: form.student_name,
+                                  description: (
+                                    <div className="mt-2 space-y-1 text-sm">
+                                      <p><strong>Email:</strong> {form.email}</p>
+                                      <p><strong>Phone:</strong> {form.phone}</p>
+                                      <p><strong>Skill:</strong> {form.skill_choice}</p>
+                                      <p><strong>Level:</strong> {form.level}</p>
+                                      <p><strong>Reason:</strong> {form.reason}</p>
+                                      {form.additional_info && (
+                                        <p><strong>Additional Info:</strong> {form.additional_info}</p>
+                                      )}
+                                    </div>
+                                  ),
+                                });
+                              }}
+                            >
+                              View Details
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <div>
+                {filteredForms.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    {searchQuery ? "No forms found matching your search" : "No forms submitted yet"}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {filteredForms.map((form) => (
+                      <Card key={form.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+                        <div className="aspect-[3/4] bg-muted relative overflow-hidden">
+                          {form.photo_url ? (
+                            <img
+                              src={form.photo_url}
+                              alt={`${form.student_name}'s photo`}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.currentTarget.src = "/placeholder.svg";
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <FileText className="w-16 h-16 text-muted-foreground" />
+                            </div>
+                          )}
+                        </div>
+                        <CardContent className="p-4">
+                          <h3 className="font-semibold text-lg mb-1 truncate">{form.student_name}</h3>
+                          <p className="text-sm text-muted-foreground mb-2">{form.matric_number}</p>
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-muted-foreground">Skill:</span>
+                              <span className="text-sm font-medium truncate ml-2">{form.skill_choice}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-muted-foreground">Level:</span>
+                              <Badge variant="secondary" className="text-xs">{form.level}</Badge>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-muted-foreground">Department:</span>
+                              <span className="text-xs truncate ml-2">{form.department}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-muted-foreground">Submitted:</span>
+                              <span className="text-xs">{new Date(form.submitted_at).toLocaleDateString()}</span>
+                            </div>
+                          </div>
                           <Button
                             variant="outline"
                             size="sm"
+                            className="w-full mt-4"
                             onClick={() => {
-                              // Show detailed view
                               toast({
                                 title: form.student_name,
                                 description: (
                                   <div className="mt-2 space-y-1 text-sm">
                                     <p><strong>Email:</strong> {form.email}</p>
                                     <p><strong>Phone:</strong> {form.phone}</p>
+                                    <p><strong>Matric:</strong> {form.matric_number}</p>
+                                    <p><strong>Department:</strong> {form.department}</p>
                                     <p><strong>Skill:</strong> {form.skill_choice}</p>
                                     <p><strong>Level:</strong> {form.level}</p>
                                     <p><strong>Reason:</strong> {form.reason}</p>
@@ -311,15 +414,15 @@ const AdminForms = () => {
                               });
                             }}
                           >
-                            View Details
+                            View Full Details
                           </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
