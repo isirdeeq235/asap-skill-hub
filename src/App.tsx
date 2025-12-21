@@ -12,6 +12,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminForms from "./pages/AdminForms";
 import AdminPayments from "./pages/AdminPayments";
 import SkillForm from "./pages/SkillForm";
+import EditSkillForm from "./pages/EditSkillForm";
 import Payment from "./pages/Payment";
 import ResetPassword from "./pages/ResetPassword";
 import UpdatePassword from "./pages/UpdatePassword";
@@ -32,6 +33,7 @@ const App = () => (
           <Route path="/student/dashboard" element={<StudentDashboard />} />
           <Route path="/student/profile" element={<StudentProfile />} />
           <Route path="/student/skill-form" element={<SkillForm />} />
+          <Route path="/student/edit-form" element={<EditSkillForm />} />
           <Route path="/student/payment" element={<Payment />} />
           <Route path="/admin/auth" element={<AdminAuth />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />

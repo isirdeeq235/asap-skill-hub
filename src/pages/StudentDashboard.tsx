@@ -4,7 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, LogOut, CreditCard, FileText, CheckCircle, XCircle, Clock, RefreshCw, Download } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Loader2, LogOut, CreditCard, FileText, CheckCircle, XCircle, Clock, RefreshCw, Download, Edit, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import jsPDF from "jspdf";
 
@@ -27,6 +29,17 @@ interface Payment {
 interface SkillForm {
   skill_choice: string;
   submitted_at: string;
+  level: string;
+  reason: string;
+  additional_info: string | null;
+}
+
+interface EditRequest {
+  id: string;
+  status: string;
+  reason: string | null;
+  requested_at: string;
+  reviewed_at: string | null;
 }
 
 const StudentDashboard = () => {
@@ -38,6 +51,10 @@ const StudentDashboard = () => {
   const [payment, setPayment] = useState<Payment | null>(null);
   const [paymentHistory, setPaymentHistory] = useState<Payment[]>([]);
   const [skillForm, setSkillForm] = useState<SkillForm | null>(null);
+  const [editRequest, setEditRequest] = useState<EditRequest | null>(null);
+  const [requestingEdit, setRequestingEdit] = useState(false);
+  const [editReason, setEditReason] = useState("");
+  const [showEditRequestForm, setShowEditRequestForm] = useState(false);
 
   useEffect(() => {
     checkUser();
@@ -136,10 +153,91 @@ const StudentDashboard = () => {
       if (formData) {
         setSkillForm(formData);
       }
+
+      // Fetch latest edit request
+      const { data: editRequestData } = await supabase
+        .from("edit_requests")
+        .select("*")
+        .eq("student_id", user.id)
+        .order("requested_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (editRequestData) {
+        setEditRequest(editRequestData);
+      }
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRequestEdit = async () => {
+    if (!editReason.trim()) {
+      toast({
+        title: "Reason Required",
+        description: "Please provide a reason for requesting edit access",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setRequestingEdit(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase.from("edit_requests").insert({
+        student_id: user.id,
+        reason: editReason.trim(),
+        status: "pending",
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Request Submitted",
+        description: "Your edit request has been submitted. Please wait for admin approval.",
+      });
+
+      setShowEditRequestForm(false);
+      setEditReason("");
+      
+      // Refresh edit request status
+      const { data: editRequestData } = await supabase
+        .from("edit_requests")
+        .select("*")
+        .eq("student_id", user.id)
+        .order("requested_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (editRequestData) {
+        setEditRequest(editRequestData);
+      }
+    } catch (error: any) {
+      console.error("Error requesting edit:", error);
+      toast({
+        title: "Request Failed",
+        description: error.message || "Failed to submit edit request",
+        variant: "destructive",
+      });
+    } finally {
+      setRequestingEdit(false);
+    }
+  };
+
+  const getEditRequestBadge = () => {
+    if (!editRequest) return null;
+    
+    switch (editRequest.status) {
+      case "approved":
+        return <Badge variant="default" className="bg-success">Edit Approved</Badge>;
+      case "rejected":
+        return <Badge variant="destructive">Edit Rejected</Badge>;
+      default:
+        return <Badge variant="secondary">Edit Pending</Badge>;
     }
   };
 
@@ -653,9 +751,12 @@ const StudentDashboard = () => {
         {/* Skill Form Card */}
         <Card className="shadow-card">
           <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              Skill Acquisition Form
-              {skillForm && <Badge variant="default" className="bg-success">Submitted</Badge>}
+            <CardTitle className="flex items-center justify-between flex-wrap gap-2">
+              <span>Skill Acquisition Form</span>
+              <div className="flex gap-2">
+                {skillForm && <Badge variant="default" className="bg-success">Submitted</Badge>}
+                {getEditRequestBadge()}
+              </div>
             </CardTitle>
             <CardDescription>Complete your skill registration</CardDescription>
           </CardHeader>
@@ -668,14 +769,106 @@ const StudentDashboard = () => {
                 </p>
               </div>
             ) : skillForm ? (
-              <div className="space-y-2">
-                <p className="font-medium text-success">Form submitted successfully!</p>
-                <p className="text-sm text-muted-foreground">
-                  Skill Choice: {skillForm.skill_choice}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Submitted: {new Date(skillForm.submitted_at).toLocaleDateString()}
-                </p>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <p className="font-medium text-success">Form submitted successfully!</p>
+                  <div className="grid md:grid-cols-2 gap-2 text-sm">
+                    <p className="text-muted-foreground">
+                      <span className="font-medium text-foreground">Level:</span> {skillForm.level}
+                    </p>
+                    <p className="text-muted-foreground">
+                      <span className="font-medium text-foreground">Skill Choice:</span> {skillForm.skill_choice}
+                    </p>
+                    <p className="text-muted-foreground">
+                      <span className="font-medium text-foreground">Submitted:</span> {new Date(skillForm.submitted_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Edit Request Section */}
+                {editRequest?.status === "approved" ? (
+                  <div className="pt-4 border-t border-border">
+                    <p className="text-sm text-success mb-3">Your edit request has been approved! You can now update your form.</p>
+                    <Button onClick={() => navigate("/student/edit-form")} variant="default">
+                      <Edit className="w-4 h-4 mr-2" />
+                      Edit Form
+                    </Button>
+                  </div>
+                ) : editRequest?.status === "pending" ? (
+                  <div className="pt-4 border-t border-border">
+                    <p className="text-sm text-muted-foreground">
+                      Your edit request is pending approval. Please wait for admin review.
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Requested: {new Date(editRequest.requested_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                ) : editRequest?.status === "rejected" ? (
+                  <div className="pt-4 border-t border-border space-y-3">
+                    <p className="text-sm text-destructive">
+                      Your previous edit request was rejected.
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setShowEditRequestForm(true)}
+                    >
+                      <Send className="w-4 h-4 mr-2" />
+                      Submit New Request
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="pt-4 border-t border-border">
+                    {showEditRequestForm ? (
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="editReason">Reason for Edit Request</Label>
+                          <Textarea
+                            id="editReason"
+                            placeholder="Please explain why you need to edit your form..."
+                            value={editReason}
+                            onChange={(e) => setEditReason(e.target.value)}
+                            rows={3}
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <Button 
+                            onClick={handleRequestEdit} 
+                            disabled={requestingEdit}
+                            size="sm"
+                          >
+                            {requestingEdit && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                            Submit Request
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              setShowEditRequestForm(false);
+                              setEditReason("");
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <p className="text-sm text-muted-foreground mb-3">
+                          Need to make changes to your submitted form?
+                        </p>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => setShowEditRequestForm(true)}
+                        >
+                          <Edit className="w-4 h-4 mr-2" />
+                          Request Edit Access
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             ) : (
               <div className="space-y-4">
