@@ -64,6 +64,23 @@ const SkillForm = () => {
 
       setUserId(user.id);
 
+      // Check if form submissions are open
+      const { data: formLockSetting } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", "form_submissions_open")
+        .single();
+
+      if (formLockSetting && formLockSetting.value === "false") {
+        toast({
+          title: "Form Submissions Closed",
+          description: "New form submissions are currently not being accepted. Please check back later.",
+          variant: "destructive",
+        });
+        navigate("/student/dashboard");
+        return;
+      }
+
       // Check payment status - get the latest payment
       const { data: payment } = await supabase
         .from("payments")
