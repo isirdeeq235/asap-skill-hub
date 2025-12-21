@@ -236,8 +236,12 @@ const StudentDashboard = () => {
         return <Badge variant="default" className="bg-success">Edit Approved</Badge>;
       case "rejected":
         return <Badge variant="destructive">Edit Rejected</Badge>;
-      default:
+      case "used":
+        return null; // Don't show badge for used/completed edits
+      case "pending":
         return <Badge variant="secondary">Edit Pending</Badge>;
+      default:
+        return null;
     }
   };
 
@@ -803,18 +807,25 @@ const StudentDashboard = () => {
                       Requested: {new Date(editRequest.requested_at).toLocaleDateString()}
                     </p>
                   </div>
-                ) : editRequest?.status === "rejected" ? (
+                ) : editRequest?.status === "rejected" || editRequest?.status === "used" ? (
                   <div className="pt-4 border-t border-border space-y-3">
-                    <p className="text-sm text-destructive">
-                      Your previous edit request was rejected.
-                    </p>
+                    {editRequest?.status === "rejected" && (
+                      <p className="text-sm text-destructive">
+                        Your previous edit request was rejected.
+                      </p>
+                    )}
+                    {editRequest?.status === "used" && (
+                      <p className="text-sm text-muted-foreground">
+                        Your form was updated on {new Date(skillForm.submitted_at).toLocaleDateString()}.
+                      </p>
+                    )}
                     <Button 
                       variant="outline" 
                       size="sm"
                       onClick={() => setShowEditRequestForm(true)}
                     >
                       <Send className="w-4 h-4 mr-2" />
-                      Submit New Request
+                      Request Edit Access
                     </Button>
                   </div>
                 ) : (

@@ -192,7 +192,7 @@ const EditSkillForm = () => {
         }
       }
 
-      // Update form
+      // Update form with new submitted_at timestamp
       const { error: updateError } = await supabase
         .from("skill_forms")
         .update({
@@ -201,17 +201,25 @@ const EditSkillForm = () => {
           reason: formData.reason,
           additional_info: formData.additionalInfo || null,
           photo_url: photoUrl,
+          submitted_at: new Date().toISOString(),
         })
         .eq("student_id", userId);
 
       if (updateError) throw updateError;
 
-      // Mark edit request as used by updating its status
-      await supabase
+      // Mark edit request as used (revokes access) with reviewed timestamp
+      const { error: revokeError } = await supabase
         .from("edit_requests")
-        .update({ status: "used" })
+        .update({ 
+          status: "used",
+          updated_at: new Date().toISOString(),
+        })
         .eq("student_id", userId)
         .eq("status", "approved");
+
+      if (revokeError) {
+        console.error("Error revoking edit access:", revokeError);
+      }
 
       toast({
         title: "Form Updated Successfully!",

@@ -36,6 +36,36 @@ const AdminForms = () => {
     checkAdmin();
   }, []);
 
+  // Real-time subscription for form updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('skill-forms-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'skill_forms'
+        },
+        (payload) => {
+          console.log('Real-time form update:', payload);
+          fetchForms();
+          
+          if (payload.eventType === 'UPDATE') {
+            toast({
+              title: "Form Updated",
+              description: "A student has updated their skill form",
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   const checkAdmin = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
