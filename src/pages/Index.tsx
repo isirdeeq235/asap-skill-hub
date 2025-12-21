@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 const Index = () => {
   return <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-hero py-20 px-4 text-warning-foreground bg-yellow-600">
+      <section className="relative overflow-hidden bg-primary py-20 px-4">
         <div className="container mx-auto max-w-6xl">
           <div className="text-center text-primary-foreground">
             <h1 className="mb-6 text-5xl md:text-6xl font-bold tracking-tight">
@@ -18,10 +18,10 @@ const Index = () => {
               Register for your mandatory skill acquisition program and unlock new opportunities for personal and professional growth.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button asChild size="lg" variant="secondary" className="text-lg px-8 py-6">
+              <Button asChild size="lg" className="text-lg px-8 py-6 bg-white text-primary hover:bg-white/90">
                 <Link to="/student/auth">Student Portal</Link>
               </Button>
-              <Button asChild size="lg" variant="outline" className="text-lg px-8 py-6 bg-background/10 hover:bg-background/20 text-primary-foreground border-primary-foreground/20">
+              <Button asChild size="lg" variant="outline" className="text-lg px-8 py-6 bg-transparent border-white text-white hover:bg-white/10">
                 <Link to="/admin/auth">Admin Login</Link>
               </Button>
             </div>
