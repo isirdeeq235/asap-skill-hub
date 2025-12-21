@@ -55,6 +55,7 @@ const StudentDashboard = () => {
   const [requestingEdit, setRequestingEdit] = useState(false);
   const [editReason, setEditReason] = useState("");
   const [showEditRequestForm, setShowEditRequestForm] = useState(false);
+  const [formSubmissionsOpen, setFormSubmissionsOpen] = useState(true);
 
   useEffect(() => {
     checkUser();
@@ -165,6 +166,17 @@ const StudentDashboard = () => {
 
       if (editRequestData) {
         setEditRequest(editRequestData);
+      }
+
+      // Fetch form submission lock status
+      const { data: formLockSetting } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", "form_submissions_open")
+        .single();
+
+      if (formLockSetting) {
+        setFormSubmissionsOpen(formLockSetting.value === "true");
       }
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -880,6 +892,13 @@ const StudentDashboard = () => {
                     )}
                   </div>
                 )}
+              </div>
+            ) : !formSubmissionsOpen ? (
+              <div className="text-center py-8">
+                <FileText className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-muted-foreground">
+                  Form submissions are currently closed. Please check back later.
+                </p>
               </div>
             ) : (
               <div className="space-y-4">

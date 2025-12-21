@@ -6,7 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, LogOut, Search, Users, DollarSign, FileText, CheckCircle, RefreshCw, Edit, X, Check } from "lucide-react";
+import { Loader2, LogOut, Search, Users, DollarSign, FileText, CheckCircle, RefreshCw, Edit, X, Check, Lock, Unlock } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 
 interface StudentData {
@@ -49,11 +50,14 @@ const AdminDashboard = () => {
   const [verifyingPayment, setVerifyingPayment] = useState<string | null>(null);
   const [editRequests, setEditRequests] = useState<EditRequest[]>([]);
   const [processingRequest, setProcessingRequest] = useState<string | null>(null);
+  const [formSubmissionsOpen, setFormSubmissionsOpen] = useState(true);
+  const [togglingFormLock, setTogglingFormLock] = useState(false);
 
   useEffect(() => {
     checkAdmin();
     fetchRegistrationFee();
     fetchEditRequests();
+    fetchFormLockStatus();
   }, []);
 
   useEffect(() => {
@@ -315,6 +319,60 @@ const AdminDashboard = () => {
     }
   };
 
+  const fetchFormLockStatus = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('app_settings')
+        .select('value')
+        .eq('key', 'form_submissions_open')
+        .single();
+
+      if (error) throw error;
+      
+      if (data) {
+        setFormSubmissionsOpen(data.value === 'true');
+      }
+    } catch (error) {
+      console.error('Error fetching form lock status:', error);
+    }
+  };
+
+  const handleToggleFormLock = async () => {
+    setTogglingFormLock(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const newValue = !formSubmissionsOpen;
+      
+      const { error } = await supabase
+        .from('app_settings')
+        .update({ 
+          value: newValue ? 'true' : 'false',
+          updated_by: userData?.user?.id,
+          updated_at: new Date().toISOString()
+        })
+        .eq('key', 'form_submissions_open');
+
+      if (error) throw error;
+
+      setFormSubmissionsOpen(newValue);
+      toast({
+        title: newValue ? "Form Submissions Opened" : "Form Submissions Closed",
+        description: newValue 
+          ? "Students can now submit new forms" 
+          : "New form submissions are now locked",
+      });
+    } catch (error) {
+      console.error('Error toggling form lock:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update form submission status",
+        variant: "destructive",
+      });
+    } finally {
+      setTogglingFormLock(false);
+    }
+  };
+
   const handleUpdateFee = async () => {
     if (!newFee || isNaN(Number(newFee)) || Number(newFee) <= 0) {
       toast({
@@ -476,6 +534,36 @@ const AdminDashboard = () => {
               <DollarSign className="w-4 h-4 mr-2" />
               Manage Payments
             </Button>
+          </CardContent>
+        </Card>
+
+        {/* Form Submissions Lock */}
+        <Card className="mb-8 shadow-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              {formSubmissionsOpen ? (
+                <Unlock className="h-5 w-5 text-success" />
+              ) : (
+                <Lock className="h-5 w-5 text-destructive" />
+              )}
+              Form Submissions
+            </CardTitle>
+            <CardDescription>
+              Control whether students can submit new skill acquisition forms
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Switch
+                checked={formSubmissionsOpen}
+                onCheckedChange={handleToggleFormLock}
+                disabled={togglingFormLock}
+              />
+              <span className={`font-medium ${formSubmissionsOpen ? 'text-success' : 'text-destructive'}`}>
+                {formSubmissionsOpen ? 'Open' : 'Closed'}
+              </span>
+            </div>
+            {togglingFormLock && <Loader2 className="h-4 w-4 animate-spin" />}
           </CardContent>
         </Card>
 
