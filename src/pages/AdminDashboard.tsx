@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, LogOut, Search, Users, DollarSign, FileText, CheckCircle, RefreshCw } from "lucide-react";
+import { Loader2, LogOut, Search, Users, DollarSign, FileText, CheckCircle, RefreshCw, Edit, X, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface StudentData {
@@ -21,6 +21,16 @@ interface StudentData {
   form_submitted: boolean;
 }
 
+interface EditRequest {
+  id: string;
+  student_id: string;
+  reason: string | null;
+  status: string;
+  requested_at: string;
+  student_name?: string;
+  student_matric?: string;
+}
+
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -31,15 +41,19 @@ const AdminDashboard = () => {
     total: 0,
     paid: 0,
     submitted: 0,
+    pendingEditRequests: 0,
   });
   const [registrationFee, setRegistrationFee] = useState("");
   const [newFee, setNewFee] = useState("");
   const [savingFee, setSavingFee] = useState(false);
   const [verifyingPayment, setVerifyingPayment] = useState<string | null>(null);
+  const [editRequests, setEditRequests] = useState<EditRequest[]>([]);
+  const [processingRequest, setProcessingRequest] = useState<string | null>(null);
 
   useEffect(() => {
     checkAdmin();
     fetchRegistrationFee();
+    fetchEditRequests();
   }, []);
 
   useEffect(() => {
@@ -162,13 +176,123 @@ const AdminDashboard = () => {
       setStudents(studentsData);
 
       // Calculate stats
-      setStats({
+      setStats(prev => ({
+        ...prev,
         total: studentsData.length,
         paid: studentsData.filter((s) => s.payment_status === "success").length,
         submitted: studentsData.filter((s) => s.form_submitted).length,
-      });
+      }));
     } catch (error) {
       console.error("Error fetching students:", error);
+    }
+  };
+
+  const fetchEditRequests = async () => {
+    try {
+      // Fetch pending edit requests
+      const { data: requests, error } = await supabase
+        .from("edit_requests")
+        .select("*")
+        .eq("status", "pending")
+        .order("requested_at", { ascending: false });
+
+      if (error) throw error;
+
+      if (!requests || requests.length === 0) {
+        setEditRequests([]);
+        setStats(prev => ({ ...prev, pendingEditRequests: 0 }));
+        return;
+      }
+
+      // Fetch student profiles for each request
+      const studentIds = requests.map(r => r.student_id);
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, matric_number")
+        .in("user_id", studentIds);
+
+      // Combine data
+      const enrichedRequests: EditRequest[] = requests.map(request => {
+        const profile = profiles?.find(p => p.user_id === request.student_id);
+        return {
+          ...request,
+          student_name: profile?.full_name || "Unknown",
+          student_matric: profile?.matric_number || "N/A",
+        };
+      });
+
+      setEditRequests(enrichedRequests);
+      setStats(prev => ({ ...prev, pendingEditRequests: enrichedRequests.length }));
+    } catch (error) {
+      console.error("Error fetching edit requests:", error);
+    }
+  };
+
+  const handleApproveRequest = async (requestId: string) => {
+    setProcessingRequest(requestId);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      const { error } = await supabase
+        .from("edit_requests")
+        .update({
+          status: "approved",
+          reviewed_at: new Date().toISOString(),
+          reviewed_by: user?.id,
+        })
+        .eq("id", requestId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Request Approved",
+        description: "The student can now edit their form",
+      });
+
+      fetchEditRequests();
+    } catch (error: any) {
+      console.error("Error approving request:", error);
+      toast({
+        title: "Error",
+        description: "Failed to approve request",
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingRequest(null);
+    }
+  };
+
+  const handleRejectRequest = async (requestId: string) => {
+    setProcessingRequest(requestId);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      const { error } = await supabase
+        .from("edit_requests")
+        .update({
+          status: "rejected",
+          reviewed_at: new Date().toISOString(),
+          reviewed_by: user?.id,
+        })
+        .eq("id", requestId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Request Rejected",
+        description: "The edit request has been rejected",
+      });
+
+      fetchEditRequests();
+    } catch (error: any) {
+      console.error("Error rejecting request:", error);
+      toast({
+        title: "Error",
+        description: "Failed to reject request",
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingRequest(null);
     }
   };
 
@@ -387,6 +511,65 @@ const AdminDashboard = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Edit Requests Section */}
+        {editRequests.length > 0 && (
+          <Card className="mb-8 shadow-card border-primary/20">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Edit className="h-5 w-5 text-primary" />
+                Pending Edit Requests
+                <Badge variant="secondary">{editRequests.length}</Badge>
+              </CardTitle>
+              <CardDescription>Students requesting permission to edit their forms</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {editRequests.map((request) => (
+                  <div key={request.id} className="flex items-start justify-between p-4 border border-border rounded-lg bg-muted/30">
+                    <div className="space-y-1">
+                      <p className="font-medium">{request.student_name}</p>
+                      <p className="text-sm text-muted-foreground">Matric: {request.student_matric}</p>
+                      {request.reason && (
+                        <p className="text-sm text-muted-foreground mt-2">
+                          <span className="font-medium">Reason:</span> {request.reason}
+                        </p>
+                      )}
+                      <p className="text-xs text-muted-foreground">
+                        Requested: {new Date(request.requested_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => handleApproveRequest(request.id)}
+                        disabled={processingRequest === request.id}
+                      >
+                        {processingRequest === request.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <>
+                            <Check className="w-4 h-4 mr-1" />
+                            Approve
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => handleRejectRequest(request.id)}
+                        disabled={processingRequest === request.id}
+                      >
+                        <X className="w-4 h-4 mr-1" />
+                        Reject
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Settings Section */}
         <Card className="mb-8 shadow-card">
