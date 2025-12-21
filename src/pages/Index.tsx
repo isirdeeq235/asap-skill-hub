@@ -100,7 +100,7 @@ const Index = () => {
                   </div>
                   <h3 className="text-xl font-semibold mb-2">Practical Skills</h3>
                   <p className="text-muted-foreground">
-                    Learn industry-relevant skills that enhance your employability
+                    Learn industry-relevant skills that enhance your employability.
                   </p>
                 </div>
               </CardContent>
@@ -114,7 +114,7 @@ const Index = () => {
                   </div>
                   <h3 className="text-xl font-semibold mb-2">Expert Training</h3>
                   <p className="text-muted-foreground">
-                    Professional instructors with real-world experience
+                    Professional instructors with real-world experience.
                   </p>
                 </div>
               </CardContent>
@@ -128,7 +128,7 @@ const Index = () => {
                   </div>
                   <h3 className="text-xl font-semibold mb-2">Certification</h3>
                   <p className="text-muted-foreground">
-                    Receive official certification upon completion
+                    Receive official certification upon completion.
                   </p>
                 </div>
               </CardContent>
