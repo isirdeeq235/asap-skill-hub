@@ -2,10 +2,26 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { BookOpen, GraduationCap, Users, Award } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
 import atapolyLogo from "@/assets/atapoly-logo.png";
 import atapolyBackground from "@/assets/atapoly-background.jpg";
+import atapolyBg2 from "@/assets/atapoly-bg-2.jpg";
+import atapolyBg3 from "@/assets/atapoly-bg-3.jpg";
+import atapolyBg4 from "@/assets/atapoly-bg-4.jpg";
+
+const backgroundImages = [atapolyBackground, atapolyBg2, atapolyBg3, atapolyBg4];
 
 const Index = () => {
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentImageIndex((prev) => (prev + 1) % backgroundImages.length);
+    }, 5000); // Change image every 5 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
   return <div className="min-h-screen bg-background">
       {/* Header with Logo */}
       <header className="bg-card border-b border-border py-3 px-4">
@@ -28,14 +44,20 @@ const Index = () => {
         </div>
       </header>
 
-      {/* Hero Section with Background Image */}
+      {/* Hero Section with Background Image Slideshow */}
       <section className="relative overflow-hidden py-24 px-4">
-        {/* Background Image with Overlay */}
-        <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: `url(${atapolyBackground})` }}
-        />
-        <div className="absolute inset-0 bg-primary/85" />
+        {/* Background Images with Fade Transition */}
+        {backgroundImages.map((image, index) => (
+          <div
+            key={index}
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-1000 ease-in-out"
+            style={{
+              backgroundImage: `url(${image})`,
+              opacity: index === currentImageIndex ? 1 : 0,
+            }}
+          />
+        ))}
+        <div className="absolute inset-0 bg-primary/80" />
         
         <div className="container mx-auto max-w-6xl relative z-10">
           <div className="text-center text-primary-foreground">
