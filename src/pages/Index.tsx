@@ -2,16 +2,50 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { BookOpen, GraduationCap, Users, Award } from "lucide-react";
 import { Link } from "react-router-dom";
+import atapolyLogo from "@/assets/atapoly-logo.png";
+import atapolyBackground from "@/assets/atapoly-background.jpg";
+
 const Index = () => {
   return <div className="min-h-screen bg-background">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-primary py-20 px-4">
-        <div className="container mx-auto max-w-6xl">
+      {/* Header with Logo */}
+      <header className="bg-card border-b border-border py-3 px-4">
+        <div className="container mx-auto max-w-6xl flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <img src={atapolyLogo} alt="ATAP Logo" className="h-12 w-auto" />
+            <div className="hidden sm:block">
+              <h1 className="text-sm font-bold text-foreground leading-tight">ABUBAKAR TATARI ALI</h1>
+              <p className="text-xs text-muted-foreground">POLYTECHNIC BAUCHI</p>
+            </div>
+          </div>
+          <nav className="flex items-center gap-2">
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/student/auth">Student Portal</Link>
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link to="/admin/auth">Admin</Link>
+            </Button>
+          </nav>
+        </div>
+      </header>
+
+      {/* Hero Section with Background Image */}
+      <section className="relative overflow-hidden py-24 px-4">
+        {/* Background Image with Overlay */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: `url(${atapolyBackground})` }}
+        />
+        <div className="absolute inset-0 bg-primary/85" />
+        
+        <div className="container mx-auto max-w-6xl relative z-10">
           <div className="text-center text-primary-foreground">
-            <h1 className="mb-6 text-5xl md:text-6xl font-bold tracking-tight">
+            <div className="flex justify-center mb-6">
+              <img src={atapolyLogo} alt="ATAP Logo" className="h-24 w-auto" />
+            </div>
+            <h1 className="mb-6 text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight">
               ATAP Skills Center
             </h1>
-            <p className="mb-8 text-xl md:text-2xl font-light max-w-3xl mx-auto">
+            <p className="mb-4 text-xl md:text-2xl font-light max-w-3xl mx-auto">
               Abubakar Tatari Ali Polytechnic Skill Acquisition Program
             </p>
             <p className="mb-12 text-lg max-w-2xl mx-auto opacity-90">
