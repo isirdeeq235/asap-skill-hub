@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 const Index = () => {
   return <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-hero py-20 px-4 text-warning-foreground">
+      <section className="relative overflow-hidden bg-gradient-hero py-20 px-4 text-warning-foreground bg-yellow-600">
         <div className="container mx-auto max-w-6xl">
           <div className="text-center text-primary-foreground">
             <h1 className="mb-6 text-5xl md:text-6xl font-bold tracking-tight">
