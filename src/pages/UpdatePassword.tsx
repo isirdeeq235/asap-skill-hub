@@ -53,7 +53,7 @@ const UpdatePassword = () => {
 
       // Navigate to student auth after 2 seconds
       setTimeout(() => {
-        navigate("/student-auth");
+        navigate("/student/auth");
       }, 2000);
     } catch (error) {
       if (error instanceof z.ZodError) {
