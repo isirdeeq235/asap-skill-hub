@@ -38,9 +38,6 @@ const Index = () => {
             <Button asChild variant="ghost" size="sm">
               <Link to="/student/auth">Student Portal</Link>
             </Button>
-            <Button asChild variant="outline" size="sm">
-              <Link to="/admin/auth">Admin</Link>
-            </Button>
           </nav>
         </div>
       </header>
@@ -77,9 +74,6 @@ const Index = () => {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button asChild size="lg" className="text-lg px-8 py-6 bg-white text-primary hover:bg-white/90">
                 <Link to="/student/auth">Student Portal</Link>
-              </Button>
-              <Button asChild size="lg" variant="outline" className="text-lg px-8 py-6 bg-transparent border-white text-white hover:bg-white/10">
-                <Link to="/admin/auth">Admin Login</Link>
               </Button>
             </div>
           </div>
