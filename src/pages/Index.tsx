@@ -8,6 +8,7 @@ import atapolyBackground from "@/assets/atapoly-background.jpg";
 import atapolyBg2 from "@/assets/atapoly-bg-2.jpg";
 import atapolyBg3 from "@/assets/atapoly-bg-3.jpg";
 import atapolyBg4 from "@/assets/atapoly-bg-4.jpg";
+import ContactFeedbackForm from "@/components/ContactFeedbackForm";
 
 const backgroundImages = [atapolyBackground, atapolyBg2, atapolyBg3, atapolyBg4];
 
@@ -166,10 +167,28 @@ const Index = () => {
         </div>
       </section>
 
+      {/* Contact & Feedback Section */}
+      <section id="contact" className="py-20 px-4">
+        <div className="container mx-auto max-w-2xl">
+          <ContactFeedbackForm />
+        </div>
+      </section>
+
       {/* Footer */}
-      <footer className="py-8 px-4 border-t border-border">
-        <div className="container mx-auto max-w-6xl text-center text-muted-foreground">
-          <p>&copy; 2024 Abubakar Tatari Ali Polytechnic. All rights reserved.</p>
+      <footer className="py-8 px-4 bg-primary text-primary-foreground">
+        <div className="container mx-auto max-w-6xl">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <img src={atapolyLogo} alt="ATAP Logo" className="h-10 w-auto" />
+              <div>
+                <p className="font-semibold">ATAP Skills Center</p>
+                <p className="text-sm opacity-80">Abubakar Tatari Ali Polytechnic</p>
+              </div>
+            </div>
+            <div className="text-center md:text-right">
+              <p className="text-sm opacity-80">&copy; 2024 Abubakar Tatari Ali Polytechnic. All rights reserved.</p>
+            </div>
+          </div>
         </div>
       </footer>
     </div>;

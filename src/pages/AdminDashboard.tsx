@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, LogOut, Search, Users, DollarSign, FileText, CheckCircle, RefreshCw, Edit, X, Check, Lock, Unlock } from "lucide-react";
+import { Loader2, LogOut, Search, Users, DollarSign, FileText, CheckCircle, RefreshCw, Edit, X, Check, Lock, Unlock, MessageSquare, Mail, Trash2, Eye, EyeOff } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 
@@ -32,6 +32,17 @@ interface EditRequest {
   student_matric?: string;
 }
 
+interface FeedbackMessage {
+  id: string;
+  name: string;
+  email: string;
+  subject: string | null;
+  message: string;
+  type: string;
+  is_read: boolean;
+  created_at: string;
+}
+
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -43,6 +54,7 @@ const AdminDashboard = () => {
     paid: 0,
     submitted: 0,
     pendingEditRequests: 0,
+    unreadMessages: 0,
   });
   const [registrationFee, setRegistrationFee] = useState("");
   const [newFee, setNewFee] = useState("");
@@ -52,12 +64,15 @@ const AdminDashboard = () => {
   const [processingRequest, setProcessingRequest] = useState<string | null>(null);
   const [formSubmissionsOpen, setFormSubmissionsOpen] = useState(true);
   const [togglingFormLock, setTogglingFormLock] = useState(false);
+  const [feedbackMessages, setFeedbackMessages] = useState<FeedbackMessage[]>([]);
+  const [deletingMessage, setDeletingMessage] = useState<string | null>(null);
 
   useEffect(() => {
     checkAdmin();
     fetchRegistrationFee();
     fetchEditRequests();
     fetchFormLockStatus();
+    fetchFeedbackMessages();
   }, []);
 
   useEffect(() => {
@@ -229,6 +244,66 @@ const AdminDashboard = () => {
       setStats(prev => ({ ...prev, pendingEditRequests: enrichedRequests.length }));
     } catch (error) {
       console.error("Error fetching edit requests:", error);
+    }
+  };
+
+  const fetchFeedbackMessages = async () => {
+    try {
+      const { data: messages, error } = await supabase
+        .from("feedback")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      setFeedbackMessages(messages || []);
+      const unreadCount = messages?.filter(m => !m.is_read).length || 0;
+      setStats(prev => ({ ...prev, unreadMessages: unreadCount }));
+    } catch (error) {
+      console.error("Error fetching feedback messages:", error);
+    }
+  };
+
+  const handleToggleReadStatus = async (messageId: string, currentStatus: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("feedback")
+        .update({ is_read: !currentStatus })
+        .eq("id", messageId);
+
+      if (error) throw error;
+
+      fetchFeedbackMessages();
+    } catch (error) {
+      console.error("Error updating message status:", error);
+    }
+  };
+
+  const handleDeleteMessage = async (messageId: string) => {
+    setDeletingMessage(messageId);
+    try {
+      const { error } = await supabase
+        .from("feedback")
+        .delete()
+        .eq("id", messageId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Message Deleted",
+        description: "The message has been removed",
+      });
+
+      fetchFeedbackMessages();
+    } catch (error: any) {
+      console.error("Error deleting message:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete message",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingMessage(null);
     }
   };
 
@@ -658,6 +733,89 @@ const AdminDashboard = () => {
             </CardContent>
           </Card>
         )}
+
+        {/* Feedback Messages Section */}
+        <Card className="mb-8 shadow-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MessageSquare className="h-5 w-5 text-primary" />
+              Messages & Feedback
+              {stats.unreadMessages > 0 && (
+                <Badge variant="default">{stats.unreadMessages} unread</Badge>
+              )}
+            </CardTitle>
+            <CardDescription>Contact messages and feedback from visitors</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {feedbackMessages.length === 0 ? (
+              <p className="text-muted-foreground text-center py-8">No messages yet</p>
+            ) : (
+              <div className="space-y-4 max-h-[500px] overflow-y-auto">
+                {feedbackMessages.map((msg) => (
+                  <div 
+                    key={msg.id} 
+                    className={`p-4 border rounded-lg transition-colors ${
+                      msg.is_read 
+                        ? 'border-border bg-muted/20' 
+                        : 'border-primary/30 bg-primary/5'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold">{msg.name}</span>
+                          <Badge variant={msg.type === 'contact' ? 'outline' : 'secondary'}>
+                            {msg.type === 'contact' ? (
+                              <><Mail className="h-3 w-3 mr-1" /> Contact</>
+                            ) : (
+                              <><MessageSquare className="h-3 w-3 mr-1" /> Feedback</>
+                            )}
+                          </Badge>
+                          {!msg.is_read && <Badge variant="default">New</Badge>}
+                        </div>
+                        <p className="text-sm text-muted-foreground">{msg.email}</p>
+                        {msg.subject && (
+                          <p className="text-sm font-medium">Subject: {msg.subject}</p>
+                        )}
+                        <p className="text-sm mt-2">{msg.message}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(msg.created_at).toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => handleToggleReadStatus(msg.id, msg.is_read)}
+                          title={msg.is_read ? "Mark as unread" : "Mark as read"}
+                        >
+                          {msg.is_read ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => handleDeleteMessage(msg.id)}
+                          disabled={deletingMessage === msg.id}
+                        >
+                          {deletingMessage === msg.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Settings Section */}
         <Card className="mb-8 shadow-card">
