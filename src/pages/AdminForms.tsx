@@ -6,11 +6,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, LogOut, Search, Download, FileText, ArrowLeft, Grid, List } from "lucide-react";
+import { Loader2, LogOut, Search, Download, FileText, ArrowLeft, Grid, List, Edit, Lock, Unlock, CheckCircle, XCircle, MoreHorizontal } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 interface FormData {
   id: string;
+  student_id: string;
   student_name: string;
   matric_number: string;
   department: string;
@@ -22,6 +28,9 @@ interface FormData {
   additional_info: string | null;
   photo_url: string | null;
   submitted_at: string;
+  access_blocked: boolean;
+  has_pending_edit_request: boolean;
+  has_approved_edit_request: boolean;
 }
 
 const AdminForms = () => {
@@ -31,6 +40,17 @@ const AdminForms = () => {
   const [forms, setForms] = useState<FormData[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"table" | "gallery">("table");
+  
+  // Edit form dialog state
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingForm, setEditingForm] = useState<FormData | null>(null);
+  const [editFormData, setEditFormData] = useState({
+    skill_choice: "",
+    level: "",
+    reason: "",
+    additional_info: "",
+  });
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     checkAdmin();
@@ -105,7 +125,8 @@ const AdminForms = () => {
 
   const fetchForms = async () => {
     try {
-      const { data, error } = await supabase
+      // Fetch forms with profiles
+      const { data: formsData, error: formsError } = await supabase
         .from("skill_forms")
         .select(`
           *,
@@ -119,23 +140,38 @@ const AdminForms = () => {
         `)
         .order("submitted_at", { ascending: false });
 
-      if (error) throw error;
+      if (formsError) throw formsError;
 
-      if (data) {
-        const formattedData: FormData[] = data.map((form: any) => ({
-          id: form.id,
-          student_name: form.profiles?.full_name || "N/A",
-          matric_number: form.profiles?.matric_number || "N/A",
-          department: form.profiles?.department || "N/A",
-          email: form.profiles?.email || "N/A",
-          phone: form.profiles?.phone || "N/A",
-          skill_choice: form.skill_choice,
-          level: form.level,
-          reason: form.reason,
-          additional_info: form.additional_info,
-          photo_url: form.photo_url,
-          submitted_at: form.submitted_at,
-        }));
+      // Fetch all edit requests to check status
+      const { data: editRequests } = await supabase
+        .from("edit_requests")
+        .select("student_id, status");
+
+      if (formsData) {
+        const formattedData: FormData[] = formsData.map((form: any) => {
+          const studentEditRequests = editRequests?.filter(r => r.student_id === form.student_id) || [];
+          const hasPending = studentEditRequests.some(r => r.status === "pending");
+          const hasApproved = studentEditRequests.some(r => r.status === "approved");
+
+          return {
+            id: form.id,
+            student_id: form.student_id,
+            student_name: form.profiles?.full_name || "N/A",
+            matric_number: form.profiles?.matric_number || "N/A",
+            department: form.profiles?.department || "N/A",
+            email: form.profiles?.email || "N/A",
+            phone: form.profiles?.phone || "N/A",
+            skill_choice: form.skill_choice,
+            level: form.level,
+            reason: form.reason,
+            additional_info: form.additional_info,
+            photo_url: form.photo_url,
+            submitted_at: form.submitted_at,
+            access_blocked: form.access_blocked || false,
+            has_pending_edit_request: hasPending,
+            has_approved_edit_request: hasApproved,
+          };
+        });
 
         setForms(formattedData);
       }
@@ -211,6 +247,165 @@ const AdminForms = () => {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate("/");
+  };
+
+  // Open edit dialog
+  const openEditDialog = (form: FormData) => {
+    setEditingForm(form);
+    setEditFormData({
+      skill_choice: form.skill_choice,
+      level: form.level,
+      reason: form.reason,
+      additional_info: form.additional_info || "",
+    });
+    setEditDialogOpen(true);
+  };
+
+  // Save edited form
+  const handleSaveForm = async () => {
+    if (!editingForm) return;
+    
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("skill_forms")
+        .update({
+          skill_choice: editFormData.skill_choice,
+          level: editFormData.level,
+          reason: editFormData.reason,
+          additional_info: editFormData.additional_info || null,
+          submitted_at: new Date().toISOString(),
+        })
+        .eq("id", editingForm.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Form Updated",
+        description: "The skill form has been updated successfully",
+      });
+      
+      setEditDialogOpen(false);
+      fetchForms();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update form",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Toggle access blocked
+  const handleToggleAccess = async (form: FormData) => {
+    try {
+      const { error } = await supabase
+        .from("skill_forms")
+        .update({ access_blocked: !form.access_blocked })
+        .eq("id", form.id);
+
+      if (error) throw error;
+
+      toast({
+        title: form.access_blocked ? "Access Restored" : "Access Blocked",
+        description: form.access_blocked 
+          ? `${form.student_name} can now view their form` 
+          : `${form.student_name} can no longer view their form`,
+      });
+      
+      fetchForms();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update access",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Grant edit access
+  const handleGrantEditAccess = async (form: FormData) => {
+    try {
+      // Check if there's a pending request to approve
+      const { data: pendingRequest } = await supabase
+        .from("edit_requests")
+        .select("id")
+        .eq("student_id", form.student_id)
+        .eq("status", "pending")
+        .maybeSingle();
+
+      if (pendingRequest) {
+        // Approve the pending request
+        const { error } = await supabase
+          .from("edit_requests")
+          .update({ 
+            status: "approved", 
+            reviewed_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", pendingRequest.id);
+
+        if (error) throw error;
+      } else {
+        // Create a new approved edit request
+        const { error } = await supabase
+          .from("edit_requests")
+          .insert({
+            student_id: form.student_id,
+            status: "approved",
+            reason: "Granted by admin",
+            reviewed_at: new Date().toISOString(),
+          });
+
+        if (error) throw error;
+      }
+
+      toast({
+        title: "Edit Access Granted",
+        description: `${form.student_name} can now edit their form`,
+      });
+      
+      fetchForms();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to grant edit access",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Revoke edit access
+  const handleRevokeEditAccess = async (form: FormData) => {
+    try {
+      // Update any approved edit requests to denied
+      const { error } = await supabase
+        .from("edit_requests")
+        .update({ 
+          status: "denied", 
+          reviewed_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq("student_id", form.student_id)
+        .eq("status", "approved");
+
+      if (error) throw error;
+
+      toast({
+        title: "Edit Access Revoked",
+        description: `${form.student_name} can no longer edit their form`,
+      });
+      
+      fetchForms();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to revoke edit access",
+        variant: "destructive",
+      });
+    }
   };
 
   const filteredForms = forms.filter(
@@ -318,6 +513,7 @@ const AdminForms = () => {
                       <TableHead>Department</TableHead>
                       <TableHead>Skill Choice</TableHead>
                       <TableHead>Level</TableHead>
+                      <TableHead>Status</TableHead>
                       <TableHead>Submitted</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
@@ -325,13 +521,13 @@ const AdminForms = () => {
                   <TableBody>
                     {filteredForms.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                           {searchQuery ? "No forms found matching your search" : "No forms submitted yet"}
                         </TableCell>
                       </TableRow>
                     ) : (
                       filteredForms.map((form) => (
-                        <TableRow key={form.id}>
+                        <TableRow key={form.id} className={form.access_blocked ? "opacity-60" : ""}>
                           <TableCell className="font-medium">{form.student_name}</TableCell>
                           <TableCell>{form.matric_number}</TableCell>
                           <TableCell>{form.department}</TableCell>
@@ -340,32 +536,92 @@ const AdminForms = () => {
                             <Badge variant="secondary">{form.level}</Badge>
                           </TableCell>
                           <TableCell>
+                            <div className="flex flex-col gap-1">
+                              {form.access_blocked && (
+                                <Badge variant="destructive" className="text-xs">
+                                  <Lock className="w-3 h-3 mr-1" />
+                                  Blocked
+                                </Badge>
+                              )}
+                              {form.has_approved_edit_request && (
+                                <Badge variant="default" className="text-xs bg-green-600">
+                                  <Edit className="w-3 h-3 mr-1" />
+                                  Can Edit
+                                </Badge>
+                              )}
+                              {form.has_pending_edit_request && (
+                                <Badge variant="outline" className="text-xs">
+                                  Pending Request
+                                </Badge>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
                             {new Date(form.submitted_at).toLocaleDateString()}
                           </TableCell>
                           <TableCell>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                toast({
-                                  title: form.student_name,
-                                  description: (
-                                    <div className="mt-2 space-y-1 text-sm">
-                                      <p><strong>Email:</strong> {form.email}</p>
-                                      <p><strong>Phone:</strong> {form.phone}</p>
-                                      <p><strong>Skill:</strong> {form.skill_choice}</p>
-                                      <p><strong>Level:</strong> {form.level}</p>
-                                      <p><strong>Reason:</strong> {form.reason}</p>
-                                      {form.additional_info && (
-                                        <p><strong>Additional Info:</strong> {form.additional_info}</p>
-                                      )}
-                                    </div>
-                                  ),
-                                });
-                              }}
-                            >
-                              View Details
-                            </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm">
+                                  <MoreHorizontal className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => {
+                                  toast({
+                                    title: form.student_name,
+                                    description: (
+                                      <div className="mt-2 space-y-1 text-sm">
+                                        <p><strong>Email:</strong> {form.email}</p>
+                                        <p><strong>Phone:</strong> {form.phone}</p>
+                                        <p><strong>Skill:</strong> {form.skill_choice}</p>
+                                        <p><strong>Level:</strong> {form.level}</p>
+                                        <p><strong>Reason:</strong> {form.reason}</p>
+                                        {form.additional_info && (
+                                          <p><strong>Additional Info:</strong> {form.additional_info}</p>
+                                        )}
+                                      </div>
+                                    ),
+                                  });
+                                }}>
+                                  <FileText className="w-4 h-4 mr-2" />
+                                  View Details
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => openEditDialog(form)}>
+                                  <Edit className="w-4 h-4 mr-2" />
+                                  Edit Form
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                {form.has_approved_edit_request ? (
+                                  <DropdownMenuItem onClick={() => handleRevokeEditAccess(form)}>
+                                    <XCircle className="w-4 h-4 mr-2" />
+                                    Revoke Edit Access
+                                  </DropdownMenuItem>
+                                ) : (
+                                  <DropdownMenuItem onClick={() => handleGrantEditAccess(form)}>
+                                    <CheckCircle className="w-4 h-4 mr-2" />
+                                    Grant Edit Access
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                  onClick={() => handleToggleAccess(form)}
+                                  className={form.access_blocked ? "text-green-600" : "text-destructive"}
+                                >
+                                  {form.access_blocked ? (
+                                    <>
+                                      <Unlock className="w-4 h-4 mr-2" />
+                                      Restore Access
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Lock className="w-4 h-4 mr-2" />
+                                      Block Access
+                                    </>
+                                  )}
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </TableCell>
                         </TableRow>
                       ))
@@ -382,7 +638,7 @@ const AdminForms = () => {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     {filteredForms.map((form) => (
-                      <Card key={form.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+                      <Card key={form.id} className={`overflow-hidden hover:shadow-lg transition-shadow ${form.access_blocked ? "opacity-60" : ""}`}>
                         <div className="aspect-[3/4] bg-muted relative overflow-hidden">
                           {form.photo_url ? (
                             <img
@@ -398,6 +654,21 @@ const AdminForms = () => {
                               <FileText className="w-16 h-16 text-muted-foreground" />
                             </div>
                           )}
+                          {/* Status badges overlay */}
+                          <div className="absolute top-2 right-2 flex flex-col gap-1">
+                            {form.access_blocked && (
+                              <Badge variant="destructive" className="text-xs">
+                                <Lock className="w-3 h-3 mr-1" />
+                                Blocked
+                              </Badge>
+                            )}
+                            {form.has_approved_edit_request && (
+                              <Badge variant="default" className="text-xs bg-green-600">
+                                <Edit className="w-3 h-3 mr-1" />
+                                Can Edit
+                              </Badge>
+                            )}
+                          </div>
                         </div>
                         <CardContent className="p-4">
                           <h3 className="font-semibold text-lg mb-1 truncate">{form.student_name}</h3>
@@ -420,32 +691,77 @@ const AdminForms = () => {
                               <span className="text-xs">{new Date(form.submitted_at).toLocaleDateString()}</span>
                             </div>
                           </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="w-full mt-4"
-                            onClick={() => {
-                              toast({
-                                title: form.student_name,
-                                description: (
-                                  <div className="mt-2 space-y-1 text-sm">
-                                    <p><strong>Email:</strong> {form.email}</p>
-                                    <p><strong>Phone:</strong> {form.phone}</p>
-                                    <p><strong>Matric:</strong> {form.matric_number}</p>
-                                    <p><strong>Department:</strong> {form.department}</p>
-                                    <p><strong>Skill:</strong> {form.skill_choice}</p>
-                                    <p><strong>Level:</strong> {form.level}</p>
-                                    <p><strong>Reason:</strong> {form.reason}</p>
-                                    {form.additional_info && (
-                                      <p><strong>Additional Info:</strong> {form.additional_info}</p>
-                                    )}
-                                  </div>
-                                ),
-                              });
-                            }}
-                          >
-                            View Full Details
-                          </Button>
+                          <div className="flex gap-2 mt-4">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1"
+                              onClick={() => openEditDialog(form)}
+                            >
+                              <Edit className="w-3 h-3 mr-1" />
+                              Edit
+                            </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="outline" size="sm">
+                                  <MoreHorizontal className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => {
+                                  toast({
+                                    title: form.student_name,
+                                    description: (
+                                      <div className="mt-2 space-y-1 text-sm">
+                                        <p><strong>Email:</strong> {form.email}</p>
+                                        <p><strong>Phone:</strong> {form.phone}</p>
+                                        <p><strong>Matric:</strong> {form.matric_number}</p>
+                                        <p><strong>Department:</strong> {form.department}</p>
+                                        <p><strong>Skill:</strong> {form.skill_choice}</p>
+                                        <p><strong>Level:</strong> {form.level}</p>
+                                        <p><strong>Reason:</strong> {form.reason}</p>
+                                        {form.additional_info && (
+                                          <p><strong>Additional Info:</strong> {form.additional_info}</p>
+                                        )}
+                                      </div>
+                                    ),
+                                  });
+                                }}>
+                                  <FileText className="w-4 h-4 mr-2" />
+                                  View Details
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                {form.has_approved_edit_request ? (
+                                  <DropdownMenuItem onClick={() => handleRevokeEditAccess(form)}>
+                                    <XCircle className="w-4 h-4 mr-2" />
+                                    Revoke Edit
+                                  </DropdownMenuItem>
+                                ) : (
+                                  <DropdownMenuItem onClick={() => handleGrantEditAccess(form)}>
+                                    <CheckCircle className="w-4 h-4 mr-2" />
+                                    Grant Edit
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                  onClick={() => handleToggleAccess(form)}
+                                  className={form.access_blocked ? "text-green-600" : "text-destructive"}
+                                >
+                                  {form.access_blocked ? (
+                                    <>
+                                      <Unlock className="w-4 h-4 mr-2" />
+                                      Restore Access
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Lock className="w-4 h-4 mr-2" />
+                                      Block Access
+                                    </>
+                                  )}
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
                         </CardContent>
                       </Card>
                     ))}
@@ -456,6 +772,87 @@ const AdminForms = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Edit Form Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit Skill Form</DialogTitle>
+            <DialogDescription>
+              Update form details for {editingForm?.student_name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-skill">Skill Choice</Label>
+              <Select 
+                value={editFormData.skill_choice} 
+                onValueChange={(value) => setEditFormData({...editFormData, skill_choice: value})}
+              >
+                <SelectTrigger id="edit-skill">
+                  <SelectValue placeholder="Select a skill" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Web Development">Web Development</SelectItem>
+                  <SelectItem value="Mobile App Development">Mobile App Development</SelectItem>
+                  <SelectItem value="Data Science">Data Science</SelectItem>
+                  <SelectItem value="Cybersecurity">Cybersecurity</SelectItem>
+                  <SelectItem value="Cloud Computing">Cloud Computing</SelectItem>
+                  <SelectItem value="UI/UX Design">UI/UX Design</SelectItem>
+                  <SelectItem value="Digital Marketing">Digital Marketing</SelectItem>
+                  <SelectItem value="Graphic Design">Graphic Design</SelectItem>
+                  <SelectItem value="Video Editing">Video Editing</SelectItem>
+                  <SelectItem value="Photography">Photography</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-level">Level</Label>
+              <Select 
+                value={editFormData.level} 
+                onValueChange={(value) => setEditFormData({...editFormData, level: value})}
+              >
+                <SelectTrigger id="edit-level">
+                  <SelectValue placeholder="Select level" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ND1">ND1</SelectItem>
+                  <SelectItem value="ND2">ND2</SelectItem>
+                  <SelectItem value="HND1">HND1</SelectItem>
+                  <SelectItem value="HND2">HND2</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-reason">Reason for Choosing This Skill</Label>
+              <Textarea
+                id="edit-reason"
+                value={editFormData.reason}
+                onChange={(e) => setEditFormData({...editFormData, reason: e.target.value})}
+                rows={3}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-additional">Additional Information</Label>
+              <Textarea
+                id="edit-additional"
+                value={editFormData.additional_info}
+                onChange={(e) => setEditFormData({...editFormData, additional_info: e.target.value})}
+                rows={2}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveForm} disabled={saving}>
+              {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

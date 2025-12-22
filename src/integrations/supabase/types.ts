@@ -197,6 +197,7 @@ export type Database = {
       }
       skill_forms: {
         Row: {
+          access_blocked: boolean
           additional_info: string | null
           id: string
           level: string
@@ -207,6 +208,7 @@ export type Database = {
           submitted_at: string | null
         }
         Insert: {
+          access_blocked?: boolean
           additional_info?: string | null
           id?: string
           level: string
@@ -217,6 +219,7 @@ export type Database = {
           submitted_at?: string | null
         }
         Update: {
+          access_blocked?: boolean
           additional_info?: string | null
           id?: string
           level?: string

@@ -103,6 +103,17 @@ const EditSkillForm = () => {
         return;
       }
 
+      // Check if access is blocked
+      if (existingForm.access_blocked) {
+        toast({
+          title: "Access Blocked",
+          description: "Your access to this form has been blocked by admin",
+          variant: "destructive",
+        });
+        navigate("/student/dashboard");
+        return;
+      }
+
       setFormData({
         level: existingForm.level,
         skillChoice: existingForm.skill_choice,
