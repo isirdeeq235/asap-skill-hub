@@ -32,6 +32,7 @@ interface SkillForm {
   level: string;
   reason: string;
   additional_info: string | null;
+  access_blocked: boolean;
 }
 
 interface EditRequest {
@@ -782,6 +783,14 @@ const StudentDashboard = () => {
                 <FileText className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
                 <p className="text-muted-foreground">
                   Complete payment to unlock the skill acquisition form
+                </p>
+              </div>
+            ) : skillForm?.access_blocked ? (
+              <div className="text-center py-8">
+                <XCircle className="w-12 h-12 mx-auto mb-4 text-destructive" />
+                <p className="text-destructive font-medium">Access to your form has been blocked</p>
+                <p className="text-muted-foreground text-sm mt-2">
+                  Please contact the admin for more information.
                 </p>
               </div>
             ) : skillForm ? (
