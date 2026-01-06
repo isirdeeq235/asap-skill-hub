@@ -25,7 +25,7 @@ const Index = () => {
 
   return <div className="min-h-screen bg-background">
       {/* Header with Logo */}
-      <header className="bg-card border-b border-border py-3 px-4">
+      <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-sm border-b border-border py-3 px-4">
         <div className="container mx-auto max-w-6xl flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img src={atapolyLogo} alt="ATAP Logo" className="h-12 w-auto" />
