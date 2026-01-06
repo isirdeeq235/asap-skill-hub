@@ -14,7 +14,7 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const credoSecretKey = Deno.env.get('CREDO_SECRET_KEY')!;
+    const paystackSecretKey = Deno.env.get('PAYSTACK_SECRET_KEY')!;
 
     // Get JWT from Authorization header
     const authHeader = req.headers.get('Authorization');
@@ -125,12 +125,12 @@ serve(async (req) => {
     // Get the app URL from environment or construct it
     const appUrl = Deno.env.get('APP_URL') || supabaseUrl.replace('fgagmcvovrrpebpijflg.supabase.co', 'a3b59232-0ce9-4e5b-8e7e-3e6c9d63bfc9.lovableproject.com');
     
-    // Initialize payment with Credo
-    console.log('Calling Credo API...');
-    const credoResponse = await fetch('https://api.credocentral.com/transaction/initialize', {
+    // Initialize payment with Paystack
+    console.log('Calling Paystack API...');
+    const paystackResponse = await fetch('https://api.paystack.co/transaction/initialize', {
       method: 'POST',
       headers: {
-        'Authorization': credoSecretKey,
+        'Authorization': `Bearer ${paystackSecretKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -143,27 +143,43 @@ serve(async (req) => {
           user_id: user.id,
           full_name: profile.full_name,
           phone: profile.phone,
+          custom_fields: [
+            {
+              display_name: "Student Name",
+              variable_name: "student_name",
+              value: profile.full_name
+            },
+            {
+              display_name: "Phone",
+              variable_name: "phone",
+              value: profile.phone
+            }
+          ]
         },
       }),
     });
 
-    console.log('Credo response status:', credoResponse.status);
-    const responseText = await credoResponse.text();
-    console.log('Credo response body:', responseText);
+    console.log('Paystack response status:', paystackResponse.status);
+    const responseText = await paystackResponse.text();
+    console.log('Paystack response body:', responseText);
 
-    if (!credoResponse.ok) {
-      console.error('Credo API error:', responseText);
+    if (!paystackResponse.ok) {
+      console.error('Paystack API error:', responseText);
       throw new Error(`Payment initialization failed: ${responseText || 'Invalid API credentials or configuration'}`);
     }
 
-    let credoData;
+    let paystackData;
     try {
-      credoData = JSON.parse(responseText);
+      paystackData = JSON.parse(responseText);
     } catch (e) {
       throw new Error('Invalid response from payment gateway');
     }
 
-    console.log('Credo data parsed:', credoData);
+    console.log('Paystack data parsed:', paystackData);
+
+    if (!paystackData.status) {
+      throw new Error(paystackData.message || 'Payment initialization failed');
+    }
 
     // Store payment record in database
     const { error: paymentError } = await supabaseAdmin
@@ -184,8 +200,8 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         reference: reference,
-        authorization_url: credoData.data?.authorizationUrl || credoData.authorizationUrl,
-        access_code: credoData.data?.access_code || credoData.access_code,
+        authorization_url: paystackData.data?.authorization_url,
+        access_code: paystackData.data?.access_code,
       }),
       {
         status: 200,
