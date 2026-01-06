@@ -15,7 +15,7 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const credoSecretKey = Deno.env.get('CREDO_SECRET_KEY')!;
+    const paystackSecretKey = Deno.env.get('PAYSTACK_SECRET_KEY')!;
     const resendApiKey = Deno.env.get('RESEND_API_KEY')!;
 
     // Create Supabase client with service role for admin access
@@ -58,8 +58,8 @@ serve(async (req) => {
     
     console.log('Webhook received:', JSON.stringify(payload, null, 2));
 
-    // Verify webhook signature - REJECT unsigned requests
-    const signature = req.headers.get('x-credo-signature');
+    // Verify Paystack webhook signature - REJECT unsigned requests
+    const signature = req.headers.get('x-paystack-signature');
     if (!signature) {
       console.error('Missing webhook signature - rejecting request');
       return new Response(
@@ -71,9 +71,9 @@ serve(async (req) => {
       );
     }
 
-    // Verify HMAC signature
+    // Verify HMAC signature (Paystack uses SHA-512)
     const encoder = new TextEncoder();
-    const keyData = encoder.encode(credoSecretKey);
+    const keyData = encoder.encode(paystackSecretKey);
     const messageData = encoder.encode(JSON.stringify(payload));
     
     const cryptoKey = await crypto.subtle.importKey(
@@ -102,10 +102,11 @@ serve(async (req) => {
 
     console.log('Webhook signature verified successfully');
 
-    const event = payload.event || payload.status;
-    // Credo sends the reference as businessRef in the data object
-    const reference = payload.data?.businessRef || payload.reference || payload.data?.reference;
-    const status = payload.data?.status || payload.status;
+    // Paystack webhook event structure
+    const event = payload.event;
+    const data = payload.data;
+    const reference = data?.reference;
+    const status = data?.status;
 
     console.log('Processing event:', event, 'reference:', reference, 'status:', status);
 
@@ -114,26 +115,38 @@ serve(async (req) => {
       throw new Error('Missing payment reference');
     }
 
-    // Verify payment with Credo API
+    // Only process charge.success events
+    if (event !== 'charge.success') {
+      console.log(`Ignoring event type: ${event}`);
+      return new Response(
+        JSON.stringify({ success: true, message: `Event ${event} acknowledged but not processed` }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    // Verify payment with Paystack API for extra security
     const verifyResponse = await fetch(
-      `https://api.credocentral.com/transaction/verify/${reference}`,
+      `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
       {
         headers: {
-          'Authorization': `Bearer ${credoSecretKey}`,
+          'Authorization': `Bearer ${paystackSecretKey}`,
           'Content-Type': 'application/json',
         },
       }
     );
 
     if (!verifyResponse.ok) {
-      throw new Error('Failed to verify payment with Credo');
+      throw new Error('Failed to verify payment with Paystack');
     }
 
     const verifyData = await verifyResponse.json();
     console.log('Verification response:', verifyData);
 
-    const paymentStatus = verifyData.data?.status || verifyData.status;
-    const isSuccessful = paymentStatus === 'success' || paymentStatus === 'successful';
+    const paymentStatus = verifyData.data?.status;
+    const isSuccessful = paymentStatus === 'success';
 
     // Update payment status in database
     const { data: paymentData, error: updateError } = await supabase

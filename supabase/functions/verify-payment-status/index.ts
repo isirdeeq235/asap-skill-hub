@@ -14,7 +14,7 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const credoSecretKey = Deno.env.get('CREDO_SECRET_KEY')!;
+    const paystackSecretKey = Deno.env.get('PAYSTACK_SECRET_KEY')!;
 
     // Verify admin user
     const authHeader = req.headers.get('Authorization');
@@ -48,11 +48,12 @@ serve(async (req) => {
       throw new Error('Payment reference is required');
     }
 
+    // Verify payment with Paystack API
     const verifyResponse = await fetch(
-      `https://api.credocentral.com/transaction/verify/${reference}`,
+      `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
       {
         headers: {
-          'Authorization': `Bearer ${credoSecretKey}`,
+          'Authorization': `Bearer ${paystackSecretKey}`,
           'Content-Type': 'application/json',
         },
       }
@@ -60,15 +61,15 @@ serve(async (req) => {
 
     if (!verifyResponse.ok) {
       const errorText = await verifyResponse.text();
-      console.error('Credo API error:', errorText);
+      console.error('Paystack API error:', errorText);
       
       // Return info about the payment without updating database
       return new Response(
         JSON.stringify({
           success: false,
-          verified_with_credo: false,
-          message: 'Payment not found or cancelled on Credo',
-          credo_error: errorText,
+          verified_with_paystack: false,
+          message: 'Payment not found or cancelled on Paystack',
+          paystack_error: errorText,
           reference: reference,
         }),
         {
@@ -79,10 +80,25 @@ serve(async (req) => {
     }
 
     const verifyData = await verifyResponse.json();
-    console.log('Credo verification response:', verifyData);
+    console.log('Paystack verification response:', verifyData);
 
-    const paymentStatus = verifyData.data?.status || verifyData.status;
-    const isSuccessful = paymentStatus === 'success' || paymentStatus === 'successful';
+    if (!verifyData.status) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          verified_with_paystack: false,
+          message: verifyData.message || 'Verification failed',
+          reference: reference,
+        }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    const paymentStatus = verifyData.data?.status;
+    const isSuccessful = paymentStatus === 'success';
 
     // Only update database if payment is successful
     if (isSuccessful) {
@@ -107,8 +123,8 @@ serve(async (req) => {
         JSON.stringify({
           success: true,
           payment_status: 'success',
-          verified_with_credo: true,
-          credo_status: paymentStatus,
+          verified_with_paystack: true,
+          paystack_status: paymentStatus,
           payment: paymentData,
           message: 'Payment verified successfully',
         }),
@@ -119,15 +135,15 @@ serve(async (req) => {
       );
     } else {
       // For failed or cancelled payments, don't update database
-      // Just return the status from Credo
-      console.log(`Payment ${reference} status from Credo: ${paymentStatus} - Not updating database`);
+      // Just return the status from Paystack
+      console.log(`Payment ${reference} status from Paystack: ${paymentStatus} - Not updating database`);
 
       return new Response(
         JSON.stringify({
           success: false,
           payment_status: paymentStatus,
-          verified_with_credo: true,
-          credo_status: paymentStatus,
+          verified_with_paystack: true,
+          paystack_status: paymentStatus,
           reference: reference,
           message: `Payment status: ${paymentStatus}. No database update for unsuccessful payments.`,
         }),
