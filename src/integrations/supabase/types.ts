@@ -302,7 +302,22 @@ export type Database = {
     }
     Functions: {
       cleanup_old_rate_limits: { Args: never; Returns: undefined }
+      get_role_level: {
+        Args: { _role: Database["public"]["Enums"]["app_role"] }
+        Returns: number
+      }
+      get_user_highest_role: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
       has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      has_role_or_higher: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
