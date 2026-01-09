@@ -5,13 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, LogOut, Shield, Users, FileText, DollarSign, Settings, LayoutDashboard, BookOpen } from 'lucide-react';
+import { Loader2, LogOut, Shield, Users, FileText, DollarSign, Settings, LayoutDashboard, BookOpen, History } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import UserManagement from '@/components/admin/UserManagement';
 import ContentManagement from '@/components/admin/ContentManagement';
 import TransactionManagement from '@/components/admin/TransactionManagement';
 import SettingsManagement from '@/components/admin/SettingsManagement';
 import SystemDocumentation from '@/components/admin/SystemDocumentation';
+import AuditLogsViewer from '@/components/admin/AuditLogsViewer';
 
 interface DashboardStats {
   totalUsers: number;
@@ -225,7 +226,7 @@ const SuperAdminDashboard = () => {
 
         {/* Main Tabs */}
         <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid">
+          <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:inline-grid">
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
               <span className="hidden sm:inline">Users</span>
@@ -237,6 +238,10 @@ const SuperAdminDashboard = () => {
             <TabsTrigger value="transactions" className="flex items-center gap-2">
               <DollarSign className="w-4 h-4" />
               <span className="hidden sm:inline">Transactions</span>
+            </TabsTrigger>
+            <TabsTrigger value="logs" className="flex items-center gap-2">
+              <History className="w-4 h-4" />
+              <span className="hidden sm:inline">Logs</span>
             </TabsTrigger>
             <TabsTrigger value="settings" className="flex items-center gap-2">
               <Settings className="w-4 h-4" />
@@ -258,6 +263,10 @@ const SuperAdminDashboard = () => {
 
           <TabsContent value="transactions">
             <TransactionManagement />
+          </TabsContent>
+
+          <TabsContent value="logs">
+            <AuditLogsViewer />
           </TabsContent>
 
           <TabsContent value="settings">
