@@ -74,6 +74,75 @@ export type Database = {
         }
         Relationships: []
       }
+      available_skills: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          display_order: number
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      content_blocks: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          key: string
+          type: string
+          updated_at: string
+          updated_by: string | null
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          key: string
+          type?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          key?: string
+          type?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: string
+        }
+        Relationships: []
+      }
       edit_requests: {
         Row: {
           created_at: string
@@ -221,36 +290,51 @@ export type Database = {
       }
       profiles: {
         Row: {
+          account_locked: boolean
           application_status: Database["public"]["Enums"]["application_status"]
+          banned: boolean
+          banned_reason: string | null
           created_at: string | null
           department: string
           email: string
           full_name: string
           id: string
+          locked_at: string | null
+          locked_by: string | null
           matric_number: string
           phone: string
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          account_locked?: boolean
           application_status?: Database["public"]["Enums"]["application_status"]
+          banned?: boolean
+          banned_reason?: string | null
           created_at?: string | null
           department: string
           email: string
           full_name: string
           id?: string
+          locked_at?: string | null
+          locked_by?: string | null
           matric_number: string
           phone: string
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          account_locked?: boolean
           application_status?: Database["public"]["Enums"]["application_status"]
+          banned?: boolean
+          banned_reason?: string | null
           created_at?: string | null
           department?: string
           email?: string
           full_name?: string
           id?: string
+          locked_at?: string | null
+          locked_by?: string | null
           matric_number?: string
           phone?: string
           updated_at?: string | null
