@@ -2,15 +2,16 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { Loader2, LogOut, Shield, Users, FileText, DollarSign, Settings, LayoutDashboard, BookOpen, History } from 'lucide-react';
+import { Loader2, LogOut, Shield, Users, FileText, DollarSign, Settings, LayoutDashboard, BookOpen, History, Power, GraduationCap, Layers } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import UserManagement from '@/components/admin/UserManagement';
+import EnhancedUserManagement from '@/components/admin/EnhancedUserManagement';
 import ContentManagement from '@/components/admin/ContentManagement';
+import ContentBlocksManager from '@/components/admin/ContentBlocksManager';
 import TransactionManagement from '@/components/admin/TransactionManagement';
-import SettingsManagement from '@/components/admin/SettingsManagement';
+import SystemControls from '@/components/admin/SystemControls';
+import SkillsManager from '@/components/admin/SkillsManager';
 import SystemDocumentation from '@/components/admin/SystemDocumentation';
 import AuditLogsViewer from '@/components/admin/AuditLogsViewer';
 
@@ -225,27 +226,35 @@ const SuperAdminDashboard = () => {
         </div>
 
         {/* Main Tabs */}
-        <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:inline-grid">
+        <Tabs defaultValue="overview" className="space-y-6">
+          <TabsList className="flex flex-wrap gap-1 h-auto p-1">
+            <TabsTrigger value="overview" className="flex items-center gap-2">
+              <Power className="w-4 h-4" />
+              <span className="hidden sm:inline">Controls</span>
+            </TabsTrigger>
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
               <span className="hidden sm:inline">Users</span>
             </TabsTrigger>
-            <TabsTrigger value="content" className="flex items-center gap-2">
+            <TabsTrigger value="cms" className="flex items-center gap-2">
+              <Layers className="w-4 h-4" />
+              <span className="hidden sm:inline">CMS</span>
+            </TabsTrigger>
+            <TabsTrigger value="skills" className="flex items-center gap-2">
+              <GraduationCap className="w-4 h-4" />
+              <span className="hidden sm:inline">Skills</span>
+            </TabsTrigger>
+            <TabsTrigger value="forms" className="flex items-center gap-2">
               <FileText className="w-4 h-4" />
-              <span className="hidden sm:inline">Content</span>
+              <span className="hidden sm:inline">Forms</span>
             </TabsTrigger>
             <TabsTrigger value="transactions" className="flex items-center gap-2">
               <DollarSign className="w-4 h-4" />
-              <span className="hidden sm:inline">Transactions</span>
+              <span className="hidden sm:inline">Payments</span>
             </TabsTrigger>
             <TabsTrigger value="logs" className="flex items-center gap-2">
               <History className="w-4 h-4" />
               <span className="hidden sm:inline">Logs</span>
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center gap-2">
-              <Settings className="w-4 h-4" />
-              <span className="hidden sm:inline">Settings</span>
             </TabsTrigger>
             <TabsTrigger value="docs" className="flex items-center gap-2">
               <BookOpen className="w-4 h-4" />
@@ -253,11 +262,23 @@ const SuperAdminDashboard = () => {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="users">
-            <UserManagement currentUserId={currentUserId} />
+          <TabsContent value="overview">
+            <SystemControls />
           </TabsContent>
 
-          <TabsContent value="content">
+          <TabsContent value="users">
+            <EnhancedUserManagement currentUserId={currentUserId} />
+          </TabsContent>
+
+          <TabsContent value="cms">
+            <ContentBlocksManager />
+          </TabsContent>
+
+          <TabsContent value="skills">
+            <SkillsManager />
+          </TabsContent>
+
+          <TabsContent value="forms">
             <ContentManagement />
           </TabsContent>
 
@@ -267,10 +288,6 @@ const SuperAdminDashboard = () => {
 
           <TabsContent value="logs">
             <AuditLogsViewer />
-          </TabsContent>
-
-          <TabsContent value="settings">
-            <SettingsManagement />
           </TabsContent>
 
           <TabsContent value="docs">

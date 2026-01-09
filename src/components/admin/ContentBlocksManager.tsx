@@ -67,7 +67,7 @@ const ContentBlocksManager = () => {
     }
   };
 
-  const logAction = async (actionType: string, targetId: string, metadata: object) => {
+  const logAction = async (actionType: string, targetId: string, metadata: Record<string, unknown>) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -77,7 +77,7 @@ const ContentBlocksManager = () => {
         action_type: actionType,
         target_table: 'content_blocks',
         target_id: targetId,
-        metadata,
+        metadata: metadata as any,
       }]);
     } catch (error) {
       console.error('Error logging action:', error);
