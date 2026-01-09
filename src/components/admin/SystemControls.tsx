@@ -78,7 +78,7 @@ const SystemControls = () => {
     return setting?.value === 'true';
   };
 
-  const logAction = async (actionType: string, metadata: object) => {
+  const logAction = async (actionType: string, metadata: Record<string, unknown>) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -88,7 +88,7 @@ const SystemControls = () => {
         action_type: actionType,
         target_table: 'app_settings',
         target_id: 'system',
-        metadata,
+        metadata: metadata as any,
       }]);
     } catch (error) {
       console.error('Error logging action:', error);
