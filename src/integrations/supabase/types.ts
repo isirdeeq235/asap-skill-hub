@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      action_logs: {
+        Row: {
+          action_type: string
+          actor_id: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          target_id: string
+          target_table: string
+        }
+        Insert: {
+          action_type: string
+          actor_id: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          target_id: string
+          target_table: string
+        }
+        Update: {
+          action_type?: string
+          actor_id?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          target_id?: string
+          target_table?: string
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           created_at: string
@@ -124,6 +154,30 @@ export type Database = {
         }
         Relationships: []
       }
+      id_cards: {
+        Row: {
+          card_url: string
+          generated_at: string
+          generated_by: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          card_url: string
+          generated_at?: string
+          generated_by?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          card_url?: string
+          generated_at?: string
+          generated_by?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           amount: number
@@ -133,6 +187,7 @@ export type Database = {
           status: string
           student_id: string
           updated_at: string | null
+          verification_notes: string | null
         }
         Insert: {
           amount?: number
@@ -142,6 +197,7 @@ export type Database = {
           status?: string
           student_id: string
           updated_at?: string | null
+          verification_notes?: string | null
         }
         Update: {
           amount?: number
@@ -151,6 +207,7 @@ export type Database = {
           status?: string
           student_id?: string
           updated_at?: string | null
+          verification_notes?: string | null
         }
         Relationships: [
           {
@@ -164,6 +221,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          application_status: Database["public"]["Enums"]["application_status"]
           created_at: string | null
           department: string
           email: string
@@ -175,6 +233,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          application_status?: Database["public"]["Enums"]["application_status"]
           created_at?: string | null
           department: string
           email: string
@@ -186,6 +245,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          application_status?: Database["public"]["Enums"]["application_status"]
           created_at?: string | null
           department?: string
           email?: string
@@ -242,6 +302,9 @@ export type Database = {
           skill_choice: string
           student_id: string
           submitted_at: string | null
+          verification_notes: string | null
+          verified_at: string | null
+          verified_by: string | null
         }
         Insert: {
           access_blocked?: boolean
@@ -253,6 +316,9 @@ export type Database = {
           skill_choice: string
           student_id: string
           submitted_at?: string | null
+          verification_notes?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Update: {
           access_blocked?: boolean
@@ -264,6 +330,9 @@ export type Database = {
           skill_choice?: string
           student_id?: string
           submitted_at?: string | null
+          verification_notes?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Relationships: [
           {
@@ -327,6 +396,13 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "student" | "super_admin" | "moderator"
+      application_status:
+        | "unpaid"
+        | "paid"
+        | "form_submitted"
+        | "form_verified"
+        | "form_rejected"
+        | "id_generated"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -455,6 +531,14 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "student", "super_admin", "moderator"],
+      application_status: [
+        "unpaid",
+        "paid",
+        "form_submitted",
+        "form_verified",
+        "form_rejected",
+        "id_generated",
+      ],
     },
   },
 } as const

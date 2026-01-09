@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Search, Trash2, Edit, FileText, Eye } from 'lucide-react';
+import { Loader2, Search, Trash2, Edit, FileText, Eye, CheckCircle, XCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface SkillFormData {
@@ -24,6 +24,10 @@ interface SkillFormData {
   photo_url: string | null;
   submitted_at: string;
   access_blocked: boolean;
+  verification_notes: string | null;
+  verified_by: string | null;
+  verified_at: string | null;
+  application_status: string;
 }
 
 const ContentManagement = () => {
@@ -49,6 +53,12 @@ const ContentManagement = () => {
   // View dialog
   const [viewingForm, setViewingForm] = useState<SkillFormData | null>(null);
 
+  // Verify/Reject dialog
+  const [actionForm, setActionForm] = useState<SkillFormData | null>(null);
+  const [actionType, setActionType] = useState<'verify' | 'reject' | null>(null);
+  const [verificationNotes, setVerificationNotes] = useState('');
+  const [isActioning, setIsActioning] = useState(false);
+
   useEffect(() => {
     fetchForms();
   }, []);
@@ -63,7 +73,8 @@ const ContentManagement = () => {
           *,
           profiles:student_id (
             full_name,
-            matric_number
+            matric_number,
+            application_status
           )
         `)
         .order('submitted_at', { ascending: false });
@@ -82,6 +93,10 @@ const ContentManagement = () => {
         photo_url: form.photo_url,
         submitted_at: form.submitted_at,
         access_blocked: form.access_blocked,
+        verification_notes: form.verification_notes,
+        verified_by: form.verified_by,
+        verified_at: form.verified_at,
+        application_status: form.profiles?.application_status || 'form_submitted',
       }));
 
       setForms(formatted);
@@ -173,6 +188,91 @@ const ContentManagement = () => {
     }
   };
 
+  const handleVerifyReject = async () => {
+    if (!actionForm || !actionType) return;
+    if (actionType === 'reject' && !verificationNotes.trim()) {
+      toast({
+        title: 'Reason Required',
+        description: 'Please provide a reason for rejection',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsActioning(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const newStatus = actionType === 'verify' ? 'form_verified' : 'form_rejected';
+
+      // Update skill_forms with verification info
+      const { error: formError } = await supabase
+        .from('skill_forms')
+        .update({
+          verification_notes: verificationNotes || null,
+          verified_by: user.id,
+          verified_at: new Date().toISOString(),
+        })
+        .eq('id', actionForm.id);
+
+      if (formError) throw formError;
+
+      // Update profile application_status
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ application_status: newStatus })
+        .eq('user_id', actionForm.student_id);
+
+      if (profileError) throw profileError;
+
+      // Log the action
+      await supabase.from('action_logs').insert({
+        actor_id: user.id,
+        action_type: actionType === 'verify' ? 'verify_form' : 'reject_form',
+        target_table: 'skill_forms',
+        target_id: actionForm.id,
+        metadata: {
+          student_id: actionForm.student_id,
+          student_name: actionForm.student_name,
+          notes: verificationNotes || null,
+          new_status: newStatus,
+        },
+      });
+
+      toast({
+        title: actionType === 'verify' ? 'Form Verified' : 'Form Rejected',
+        description: `${actionForm.student_name}'s form has been ${actionType === 'verify' ? 'verified' : 'rejected'}`,
+      });
+
+      setActionForm(null);
+      setActionType(null);
+      setVerificationNotes('');
+      fetchForms();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || `Failed to ${actionType} form`,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsActioning(false);
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'form_verified':
+        return <Badge className="bg-success">Verified</Badge>;
+      case 'form_rejected':
+        return <Badge variant="destructive">Rejected</Badge>;
+      case 'id_generated':
+        return <Badge className="bg-primary">ID Generated</Badge>;
+      default:
+        return <Badge variant="secondary">Pending</Badge>;
+    }
+  };
+
   const filteredForms = forms.filter(form =>
     form.student_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     form.matric_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -195,7 +295,7 @@ const ContentManagement = () => {
             <FileText className="h-5 w-5" />
             Skill Forms Management
           </CardTitle>
-          <CardDescription>Edit or delete student skill forms</CardDescription>
+          <CardDescription>Verify, edit or delete student skill forms</CardDescription>
           <div className="relative mt-4">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
@@ -215,6 +315,7 @@ const ContentManagement = () => {
                   <TableHead>Matric Number</TableHead>
                   <TableHead>Skill Choice</TableHead>
                   <TableHead>Level</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Submitted</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -222,7 +323,7 @@ const ContentManagement = () => {
               <TableBody>
                 {filteredForms.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center text-muted-foreground">
                       No forms found
                     </TableCell>
                   </TableRow>
@@ -235,24 +336,51 @@ const ContentManagement = () => {
                         <Badge variant="outline">{form.skill_choice}</Badge>
                       </TableCell>
                       <TableCell>{form.level}</TableCell>
+                      <TableCell>{getStatusBadge(form.application_status)}</TableCell>
                       <TableCell>{new Date(form.submitted_at).toLocaleDateString()}</TableCell>
                       <TableCell>
-                        <div className="flex gap-2">
+                        <div className="flex gap-1 flex-wrap">
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => setViewingForm(form)}
                           >
-                            <Eye className="w-3 h-3 mr-1" />
-                            View
+                            <Eye className="w-3 h-3" />
                           </Button>
+                          {form.application_status === 'form_submitted' && (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-success hover:text-success"
+                                onClick={() => {
+                                  setActionForm(form);
+                                  setActionType('verify');
+                                  setVerificationNotes('');
+                                }}
+                              >
+                                <CheckCircle className="w-3 h-3" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-destructive hover:text-destructive"
+                                onClick={() => {
+                                  setActionForm(form);
+                                  setActionType('reject');
+                                  setVerificationNotes('');
+                                }}
+                              >
+                                <XCircle className="w-3 h-3" />
+                              </Button>
+                            </>
+                          )}
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => handleEdit(form)}
                           >
-                            <Edit className="w-3 h-3 mr-1" />
-                            Edit
+                            <Edit className="w-3 h-3" />
                           </Button>
                           <Button
                             size="sm"
@@ -298,9 +426,19 @@ const ContentManagement = () => {
                   <p className="font-medium">{viewingForm.level}</p>
                 </div>
                 <div>
+                  <Label className="text-muted-foreground">Status</Label>
+                  <div className="mt-1">{getStatusBadge(viewingForm.application_status)}</div>
+                </div>
+                <div>
                   <Label className="text-muted-foreground">Submitted</Label>
                   <p className="font-medium">{new Date(viewingForm.submitted_at).toLocaleString()}</p>
                 </div>
+                {viewingForm.verified_at && (
+                  <div>
+                    <Label className="text-muted-foreground">Verified At</Label>
+                    <p className="font-medium">{new Date(viewingForm.verified_at).toLocaleString()}</p>
+                  </div>
+                )}
               </div>
               <div>
                 <Label className="text-muted-foreground">Reason</Label>
@@ -310,6 +448,12 @@ const ContentManagement = () => {
                 <div>
                   <Label className="text-muted-foreground">Additional Info</Label>
                   <p className="mt-1">{viewingForm.additional_info}</p>
+                </div>
+              )}
+              {viewingForm.verification_notes && (
+                <div>
+                  <Label className="text-muted-foreground">Verification Notes</Label>
+                  <p className="mt-1">{viewingForm.verification_notes}</p>
                 </div>
               )}
               {viewingForm.photo_url && (
@@ -326,6 +470,43 @@ const ContentManagement = () => {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setViewingForm(null)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Verify/Reject Dialog */}
+      <Dialog open={!!actionForm && !!actionType} onOpenChange={() => { setActionForm(null); setActionType(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{actionType === 'verify' ? 'Verify Form' : 'Reject Form'}</DialogTitle>
+            <DialogDescription>
+              {actionType === 'verify' 
+                ? `Confirm verification of ${actionForm?.student_name}'s skill form`
+                : `Provide a reason for rejecting ${actionForm?.student_name}'s form`
+              }
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label>{actionType === 'verify' ? 'Notes (Optional)' : 'Rejection Reason (Required)'}</Label>
+              <Textarea
+                placeholder={actionType === 'verify' ? 'Add any notes...' : 'Explain why this form is being rejected...'}
+                value={verificationNotes}
+                onChange={(e) => setVerificationNotes(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setActionForm(null); setActionType(null); }}>Cancel</Button>
+            <Button 
+              onClick={handleVerifyReject} 
+              disabled={isActioning}
+              variant={actionType === 'reject' ? 'destructive' : 'default'}
+            >
+              {isActioning && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {actionType === 'verify' ? 'Verify Form' : 'Reject Form'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

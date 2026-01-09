@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2, LogOut, CreditCard, FileText, CheckCircle, XCircle, Clock, RefreshCw, Download, Edit, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import jsPDF from "jspdf";
+import IDCardGenerator from "@/components/student/IDCardGenerator";
 
 interface Profile {
   full_name: string;
@@ -16,6 +17,7 @@ interface Profile {
   phone: string;
   matric_number: string;
   department: string;
+  application_status: string;
 }
 
 interface Payment {
@@ -33,6 +35,7 @@ interface SkillForm {
   reason: string;
   additional_info: string | null;
   access_blocked: boolean;
+  photo_url: string | null;
 }
 
 interface EditRequest {
@@ -41,6 +44,11 @@ interface EditRequest {
   reason: string | null;
   requested_at: string;
   reviewed_at: string | null;
+}
+
+interface IdCard {
+  card_url: string;
+  generated_at: string;
 }
 
 const StudentDashboard = () => {
@@ -57,6 +65,8 @@ const StudentDashboard = () => {
   const [editReason, setEditReason] = useState("");
   const [showEditRequestForm, setShowEditRequestForm] = useState(false);
   const [formSubmissionsOpen, setFormSubmissionsOpen] = useState(true);
+  const [idCard, setIdCard] = useState<IdCard | null>(null);
+  const [userId, setUserId] = useState<string>("");
 
   useEffect(() => {
     checkUser();
@@ -110,15 +120,17 @@ const StudentDashboard = () => {
         return;
       }
 
-      // Fetch profile
+      setUserId(user.id);
+
+      // Fetch profile with application_status
       const { data: profileData } = await supabase
         .from("profiles")
-        .select("*")
+        .select("full_name, email, phone, matric_number, department, application_status")
         .eq("user_id", user.id)
         .single();
 
       if (profileData) {
-        setProfile(profileData);
+        setProfile(profileData as Profile);
       }
 
       // Fetch latest payment status
@@ -148,12 +160,23 @@ const StudentDashboard = () => {
       // Fetch skill form
       const { data: formData } = await supabase
         .from("skill_forms")
-        .select("*")
+        .select("skill_choice, submitted_at, level, reason, additional_info, access_blocked, photo_url")
         .eq("student_id", user.id)
         .maybeSingle();
 
       if (formData) {
-        setSkillForm(formData);
+        setSkillForm(formData as SkillForm);
+      }
+
+      // Fetch ID card if exists
+      const { data: idCardData } = await supabase
+        .from("id_cards")
+        .select("card_url, generated_at")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (idCardData) {
+        setIdCard(idCardData as IdCard);
       }
 
       // Fetch latest edit request
@@ -922,6 +945,27 @@ const StudentDashboard = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* ID Card Generator - Only show after form is submitted */}
+        {profile && skillForm && (
+          <IDCardGenerator
+            userId={userId}
+            profile={{
+              full_name: profile.full_name,
+              matric_number: profile.matric_number,
+              department: profile.department,
+              email: profile.email,
+              application_status: profile.application_status,
+            }}
+            skillForm={{
+              skill_choice: skillForm.skill_choice,
+              level: skillForm.level,
+              photo_url: skillForm.photo_url,
+            }}
+            existingIdCard={idCard}
+            onIdGenerated={checkUser}
+          />
+        )}
       </div>
     </div>
   );
