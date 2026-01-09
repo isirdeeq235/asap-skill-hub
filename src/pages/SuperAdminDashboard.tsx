@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, LogOut, Shield, Users, FileText, DollarSign, LayoutDashboard, BookOpen, History, Power, GraduationCap, Layers, Clock } from 'lucide-react';
+import { Loader2, LogOut, Shield, Users, FileText, DollarSign, LayoutDashboard, BookOpen, History, Power, GraduationCap, Layers, Clock, IdCard, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import EnhancedUserManagement from '@/components/admin/EnhancedUserManagement';
 import ContentManagement from '@/components/admin/ContentManagement';
@@ -15,6 +15,8 @@ import SkillsManager from '@/components/admin/SkillsManager';
 import SystemDocumentation from '@/components/admin/SystemDocumentation';
 import AuditLogsViewer from '@/components/admin/AuditLogsViewer';
 import PendingActionsManager from '@/components/admin/PendingActionsManager';
+import IDCardManagement from '@/components/admin/IDCardManagement';
+import SettingsManagement from '@/components/admin/SettingsManagement';
 
 interface DashboardStats {
   totalUsers: number;
@@ -24,6 +26,7 @@ interface DashboardStats {
   totalForms: number;
   totalPayments: number;
   totalRevenue: number;
+  totalIDCards: number;
 }
 
 const SuperAdminDashboard = () => {
@@ -39,6 +42,7 @@ const SuperAdminDashboard = () => {
     totalForms: 0,
     totalPayments: 0,
     totalRevenue: 0,
+    totalIDCards: 0,
   });
 
   useEffect(() => {
@@ -103,6 +107,10 @@ const SuperAdminDashboard = () => {
         .from('payments')
         .select('amount, status');
 
+      const { data: idCards } = await supabase
+        .from('id_cards')
+        .select('id');
+
       const adminCount = roles?.filter(r => r.role === 'admin').length || 0;
       const superAdminCount = roles?.filter(r => r.role === 'super_admin').length || 0;
       const moderatorCount = roles?.filter(r => r.role === 'moderator').length || 0;
@@ -119,6 +127,7 @@ const SuperAdminDashboard = () => {
         totalForms: forms?.length || 0,
         totalPayments: payments?.length || 0,
         totalRevenue,
+        totalIDCards: idCards?.length || 0,
       });
     } catch (error) {
       console.error('Error fetching stats:', error);
@@ -167,7 +176,7 @@ const SuperAdminDashboard = () => {
 
       <div className="container mx-auto px-4 py-8">
         {/* Stats Overview */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-8">
           <Card className="shadow-card">
             <CardHeader className="pb-2">
               <CardTitle className="text-xs font-medium text-muted-foreground">Total Users</CardTitle>
@@ -210,6 +219,14 @@ const SuperAdminDashboard = () => {
           </Card>
           <Card className="shadow-card">
             <CardHeader className="pb-2">
+              <CardTitle className="text-xs font-medium text-muted-foreground">ID Cards</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-purple-500">{stats.totalIDCards}</div>
+            </CardContent>
+          </Card>
+          <Card className="shadow-card">
+            <CardHeader className="pb-2">
               <CardTitle className="text-xs font-medium text-muted-foreground">Payments</CardTitle>
             </CardHeader>
             <CardContent>
@@ -233,6 +250,10 @@ const SuperAdminDashboard = () => {
               <Power className="w-4 h-4" />
               <span className="hidden sm:inline">Controls</span>
             </TabsTrigger>
+            <TabsTrigger value="settings" className="flex items-center gap-2">
+              <Settings className="w-4 h-4" />
+              <span className="hidden sm:inline">Settings</span>
+            </TabsTrigger>
             <TabsTrigger value="pending" className="flex items-center gap-2">
               <Clock className="w-4 h-4" />
               <span className="hidden sm:inline">Pending</span>
@@ -253,6 +274,10 @@ const SuperAdminDashboard = () => {
               <FileText className="w-4 h-4" />
               <span className="hidden sm:inline">Forms</span>
             </TabsTrigger>
+            <TabsTrigger value="idcards" className="flex items-center gap-2">
+              <IdCard className="w-4 h-4" />
+              <span className="hidden sm:inline">ID Cards</span>
+            </TabsTrigger>
             <TabsTrigger value="transactions" className="flex items-center gap-2">
               <DollarSign className="w-4 h-4" />
               <span className="hidden sm:inline">Payments</span>
@@ -269,6 +294,10 @@ const SuperAdminDashboard = () => {
 
           <TabsContent value="overview">
             <SafeSystemControls />
+          </TabsContent>
+
+          <TabsContent value="settings">
+            <SettingsManagement />
           </TabsContent>
 
           <TabsContent value="pending">
@@ -289,6 +318,10 @@ const SuperAdminDashboard = () => {
 
           <TabsContent value="forms">
             <ContentManagement />
+          </TabsContent>
+
+          <TabsContent value="idcards">
+            <IDCardManagement />
           </TabsContent>
 
           <TabsContent value="transactions">
