@@ -10,9 +10,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Loader2, Search, Shield, User, UserCog, Users, MoreHorizontal, Lock, Unlock, Ban, RotateCcw, Trash2, Edit, Eye } from 'lucide-react';
+import { Loader2, Search, Shield, User, UserCog, Users, MoreHorizontal, Lock, Unlock, Ban, RotateCcw, Trash2, Edit, Eye, History } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AppRole } from '@/hooks/useUserRole';
+import UserHistoryViewer from './UserHistoryViewer';
 
 interface UserWithRole {
   user_id: string;
@@ -55,6 +56,7 @@ const EnhancedUserManagement = ({ currentUserId }: EnhancedUserManagementProps) 
   const [processing, setProcessing] = useState(false);
   
   const [viewingUser, setViewingUser] = useState<UserWithRole | null>(null);
+  const [historyUser, setHistoryUser] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -420,7 +422,11 @@ const EnhancedUserManagement = ({ currentUserId }: EnhancedUserManagementProps) 
                               <Eye className="w-4 h-4 mr-2" />
                               View Details
                             </DropdownMenuItem>
-                            <DropdownMenuItem 
+                            <DropdownMenuItem onClick={() => setHistoryUser({ id: user.user_id, name: user.full_name })}>
+                              <History className="w-4 h-4 mr-2" />
+                              View History
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
                               onClick={() => {
                                 setEditingUser(user);
                                 setSelectedRole(getHighestRole(user.roles));
@@ -634,6 +640,14 @@ const EnhancedUserManagement = ({ currentUserId }: EnhancedUserManagementProps) 
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* User History Viewer */}
+      <UserHistoryViewer
+        userId={historyUser?.id || ''}
+        userName={historyUser?.name || ''}
+        open={!!historyUser}
+        onClose={() => setHistoryUser(null)}
+      />
     </>
   );
 };
