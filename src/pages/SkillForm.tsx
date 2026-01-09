@@ -210,6 +210,12 @@ const SkillForm = () => {
 
       if (error) throw error;
 
+      // Update application_status to 'form_submitted'
+      await supabase
+        .from("profiles")
+        .update({ application_status: "form_submitted" })
+        .eq("user_id", userId);
+
       toast({
         title: "Form submitted successfully!",
         description: "Your skill acquisition registration is complete",
