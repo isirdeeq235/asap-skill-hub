@@ -10,6 +10,7 @@ import { Loader2, LogOut, CreditCard, FileText, CheckCircle, XCircle, Clock, Ref
 import { useToast } from "@/hooks/use-toast";
 import jsPDF from "jspdf";
 import IDCardGenerator from "@/components/student/IDCardGenerator";
+import SubmittedFormDetails from "@/components/student/SubmittedFormDetails";
 
 interface Profile {
   full_name: string;
@@ -816,22 +817,10 @@ const StudentDashboard = () => {
                   Please contact the admin for more information.
                 </p>
               </div>
-            ) : skillForm ? (
+            ) : skillForm && profile ? (
               <div className="space-y-4">
-                <div className="space-y-2">
-                  <p className="font-medium text-success">Form submitted successfully!</p>
-                  <div className="grid md:grid-cols-2 gap-2 text-sm">
-                    <p className="text-muted-foreground">
-                      <span className="font-medium text-foreground">Level:</span> {skillForm.level}
-                    </p>
-                    <p className="text-muted-foreground">
-                      <span className="font-medium text-foreground">Skill Choice:</span> {skillForm.skill_choice}
-                    </p>
-                    <p className="text-muted-foreground">
-                      <span className="font-medium text-foreground">Submitted:</span> {new Date(skillForm.submitted_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
+                {/* Detailed Form View */}
+                <SubmittedFormDetails skillForm={skillForm} profile={profile} />
 
                 {/* Edit Request Section */}
                 {editRequest?.status === "approved" ? (
