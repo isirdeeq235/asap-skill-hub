@@ -5,12 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, LogOut, Shield, Users, FileText, DollarSign, Settings, LayoutDashboard } from 'lucide-react';
+import { Loader2, LogOut, Shield, Users, FileText, DollarSign, Settings, LayoutDashboard, BookOpen } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import UserManagement from '@/components/admin/UserManagement';
 import ContentManagement from '@/components/admin/ContentManagement';
 import TransactionManagement from '@/components/admin/TransactionManagement';
 import SettingsManagement from '@/components/admin/SettingsManagement';
+import SystemDocumentation from '@/components/admin/SystemDocumentation';
 
 interface DashboardStats {
   totalUsers: number;
@@ -224,7 +225,7 @@ const SuperAdminDashboard = () => {
 
         {/* Main Tabs */}
         <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-grid">
+          <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid">
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
               <span className="hidden sm:inline">Users</span>
@@ -240,6 +241,10 @@ const SuperAdminDashboard = () => {
             <TabsTrigger value="settings" className="flex items-center gap-2">
               <Settings className="w-4 h-4" />
               <span className="hidden sm:inline">Settings</span>
+            </TabsTrigger>
+            <TabsTrigger value="docs" className="flex items-center gap-2">
+              <BookOpen className="w-4 h-4" />
+              <span className="hidden sm:inline">Docs</span>
             </TabsTrigger>
           </TabsList>
 
@@ -257,6 +262,10 @@ const SuperAdminDashboard = () => {
 
           <TabsContent value="settings">
             <SettingsManagement />
+          </TabsContent>
+
+          <TabsContent value="docs">
+            <SystemDocumentation />
           </TabsContent>
         </Tabs>
       </div>
