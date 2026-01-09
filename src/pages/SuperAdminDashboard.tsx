@@ -4,16 +4,17 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, LogOut, Shield, Users, FileText, DollarSign, Settings, LayoutDashboard, BookOpen, History, Power, GraduationCap, Layers } from 'lucide-react';
+import { Loader2, LogOut, Shield, Users, FileText, DollarSign, LayoutDashboard, BookOpen, History, Power, GraduationCap, Layers, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import EnhancedUserManagement from '@/components/admin/EnhancedUserManagement';
 import ContentManagement from '@/components/admin/ContentManagement';
 import ContentBlocksManager from '@/components/admin/ContentBlocksManager';
 import TransactionManagement from '@/components/admin/TransactionManagement';
-import SystemControls from '@/components/admin/SystemControls';
+import SafeSystemControls from '@/components/admin/SafeSystemControls';
 import SkillsManager from '@/components/admin/SkillsManager';
 import SystemDocumentation from '@/components/admin/SystemDocumentation';
 import AuditLogsViewer from '@/components/admin/AuditLogsViewer';
+import PendingActionsManager from '@/components/admin/PendingActionsManager';
 
 interface DashboardStats {
   totalUsers: number;
@@ -232,6 +233,10 @@ const SuperAdminDashboard = () => {
               <Power className="w-4 h-4" />
               <span className="hidden sm:inline">Controls</span>
             </TabsTrigger>
+            <TabsTrigger value="pending" className="flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              <span className="hidden sm:inline">Pending</span>
+            </TabsTrigger>
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
               <span className="hidden sm:inline">Users</span>
@@ -263,7 +268,11 @@ const SuperAdminDashboard = () => {
           </TabsList>
 
           <TabsContent value="overview">
-            <SystemControls />
+            <SafeSystemControls />
+          </TabsContent>
+
+          <TabsContent value="pending">
+            <PendingActionsManager />
           </TabsContent>
 
           <TabsContent value="users">
