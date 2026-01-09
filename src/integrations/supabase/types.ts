@@ -74,14 +74,61 @@ export type Database = {
         }
         Relationships: []
       }
+      app_settings_history: {
+        Row: {
+          change_reason: string | null
+          changed_by: string | null
+          created_at: string
+          id: string
+          is_rollback: boolean
+          new_value: string
+          old_value: string | null
+          rolled_back_from: string | null
+          setting_key: string
+        }
+        Insert: {
+          change_reason?: string | null
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          is_rollback?: boolean
+          new_value: string
+          old_value?: string | null
+          rolled_back_from?: string | null
+          setting_key: string
+        }
+        Update: {
+          change_reason?: string | null
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          is_rollback?: boolean
+          new_value?: string
+          old_value?: string | null
+          rolled_back_from?: string | null
+          setting_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_settings_history_rolled_back_from_fkey"
+            columns: ["rolled_back_from"]
+            isOneToOne: false
+            referencedRelation: "app_settings_history"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       available_skills: {
         Row: {
           created_at: string
           created_by: string | null
+          deleted_at: string | null
+          deleted_by: string | null
           description: string | null
           display_order: number
           id: string
           is_active: boolean
+          is_deleted: boolean
           name: string
           updated_at: string
           updated_by: string | null
@@ -89,10 +136,13 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           description?: string | null
           display_order?: number
           id?: string
           is_active?: boolean
+          is_deleted?: boolean
           name: string
           updated_at?: string
           updated_by?: string | null
@@ -100,21 +150,70 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           description?: string | null
           display_order?: number
           id?: string
           is_active?: boolean
+          is_deleted?: boolean
           name?: string
           updated_at?: string
           updated_by?: string | null
         }
         Relationships: []
       }
+      content_block_versions: {
+        Row: {
+          change_reason: string | null
+          content_block_id: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          key: string
+          type: string
+          value: string
+          version_number: number
+        }
+        Insert: {
+          change_reason?: string | null
+          content_block_id: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          key: string
+          type: string
+          value: string
+          version_number?: number
+        }
+        Update: {
+          change_reason?: string | null
+          content_block_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          key?: string
+          type?: string
+          value?: string
+          version_number?: number
+        }
+        Relationships: []
+      }
       content_blocks: {
         Row: {
           created_at: string
+          current_version: number
+          deleted_at: string | null
+          deleted_by: string | null
           description: string | null
           id: string
+          is_deleted: boolean
           key: string
           type: string
           updated_at: string
@@ -123,8 +222,12 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          current_version?: number
+          deleted_at?: string | null
+          deleted_by?: string | null
           description?: string | null
           id?: string
+          is_deleted?: boolean
           key: string
           type?: string
           updated_at?: string
@@ -133,8 +236,12 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          current_version?: number
+          deleted_at?: string | null
+          deleted_by?: string | null
           description?: string | null
           id?: string
+          is_deleted?: boolean
           key?: string
           type?: string
           updated_at?: string
@@ -287,6 +394,60 @@ export type Database = {
             referencedColumns: ["user_id"]
           },
         ]
+      }
+      pending_actions: {
+        Row: {
+          action_tier: string
+          action_type: string
+          actor_id: string
+          affected_users_count: number | null
+          cancelled_at: string | null
+          cancelled_reason: string | null
+          created_at: string
+          executed_at: string | null
+          id: string
+          justification: string
+          payload: Json
+          scheduled_for: string
+          status: string
+          target_id: string | null
+          target_table: string | null
+        }
+        Insert: {
+          action_tier?: string
+          action_type: string
+          actor_id: string
+          affected_users_count?: number | null
+          cancelled_at?: string | null
+          cancelled_reason?: string | null
+          created_at?: string
+          executed_at?: string | null
+          id?: string
+          justification: string
+          payload?: Json
+          scheduled_for: string
+          status?: string
+          target_id?: string | null
+          target_table?: string | null
+        }
+        Update: {
+          action_tier?: string
+          action_type?: string
+          actor_id?: string
+          affected_users_count?: number | null
+          cancelled_at?: string | null
+          cancelled_reason?: string | null
+          created_at?: string
+          executed_at?: string | null
+          id?: string
+          justification?: string
+          payload?: Json
+          scheduled_for?: string
+          status?: string
+          target_id?: string | null
+          target_table?: string | null
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
