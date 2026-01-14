@@ -39,31 +39,24 @@ const AdminAuth = () => {
       if (error) throw error;
 
       if (data.user) {
-        // Check if user has admin, super_admin, or moderator role
-        const { data: roles } = await supabase
+        // Check if user has admin role
+        const { data: roleData } = await supabase
           .from("user_roles")
           .select("role")
-          .eq("user_id", data.user.id);
+          .eq("user_id", data.user.id)
+          .eq("role", "admin")
+          .maybeSingle();
 
-        const validRoles = ['super_admin', 'admin', 'moderator'];
-        const userRole = roles?.find(r => validRoles.includes(r.role));
-
-        if (!userRole) {
+        if (!roleData) {
           await supabase.auth.signOut();
           throw new Error("Access denied. Admin privileges required.");
         }
 
         toast({
-          title: "Login successful!",
-          description: `Welcome, ${userRole.role.replace('_', ' ')}`,
+          title: "Admin login successful!",
+          description: "Welcome to the admin dashboard",
         });
-
-        // Redirect based on role
-        if (userRole.role === 'super_admin') {
-          navigate("/super-admin");
-        } else {
-          navigate("/admin/dashboard");
-        }
+        navigate("/admin/dashboard");
       }
     } catch (error: any) {
       if (error instanceof z.ZodError) {

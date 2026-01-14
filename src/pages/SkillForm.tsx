@@ -198,23 +198,7 @@ const SkillForm = () => {
         return;
       }
 
-      // Submit form - check for existing submission first
-      const { data: existingForm } = await supabase
-        .from("skill_forms")
-        .select("id")
-        .eq("student_id", userId)
-        .maybeSingle();
-
-      if (existingForm) {
-        toast({
-          title: "Form Already Submitted",
-          description: "You have already submitted your skill acquisition form. Redirecting to dashboard...",
-          variant: "destructive",
-        });
-        navigate("/student/dashboard");
-        return;
-      }
-
+      // Submit form
       const { error } = await supabase.from("skill_forms").insert({
         student_id: userId,
         level: formData.level,
@@ -224,25 +208,7 @@ const SkillForm = () => {
         photo_url: photoUrl,
       });
 
-      if (error) {
-        // Handle duplicate key error specifically
-        if (error.code === "23505") {
-          toast({
-            title: "Form Already Submitted",
-            description: "You have already submitted your skill acquisition form",
-            variant: "destructive",
-          });
-          navigate("/student/dashboard");
-          return;
-        }
-        throw error;
-      }
-
-      // Update application_status to 'form_submitted'
-      await supabase
-        .from("profiles")
-        .update({ application_status: "form_submitted" })
-        .eq("user_id", userId);
+      if (error) throw error;
 
       toast({
         title: "Form submitted successfully!",

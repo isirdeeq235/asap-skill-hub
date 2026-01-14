@@ -11,7 +11,6 @@ import AdminAuth from "./pages/AdminAuth";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminForms from "./pages/AdminForms";
 import AdminPayments from "./pages/AdminPayments";
-import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import SkillForm from "./pages/SkillForm";
 import EditSkillForm from "./pages/EditSkillForm";
 import Payment from "./pages/Payment";
@@ -40,7 +39,6 @@ const App = () => (
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/forms" element={<AdminForms />} />
           <Route path="/admin/payments" element={<AdminPayments />} />
-          <Route path="/super-admin" element={<SuperAdminDashboard />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/update-password" element={<UpdatePassword />} />
           <Route path="/verify-payment/:reference" element={<VerifyPayment />} />

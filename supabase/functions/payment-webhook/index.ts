@@ -166,21 +166,6 @@ serve(async (req) => {
 
     console.log(`Payment ${reference} updated to status: ${isSuccessful ? 'success' : 'failed'}`);
 
-    // Update profile application_status to 'paid' if successful
-    if (isSuccessful && paymentData?.student_id) {
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({ application_status: 'paid' })
-        .eq('user_id', paymentData.student_id);
-
-      if (profileError) {
-        console.error('Failed to update profile application_status:', profileError);
-        // Don't throw - payment update was successful
-      } else {
-        console.log(`Profile application_status updated to 'paid' for user ${paymentData.student_id}`);
-      }
-    }
-
     // Send email notification if payment is successful
     if (isSuccessful && paymentData) {
       try {

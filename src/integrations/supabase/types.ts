@@ -14,36 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      action_logs: {
-        Row: {
-          action_type: string
-          actor_id: string
-          created_at: string
-          id: string
-          metadata: Json | null
-          target_id: string
-          target_table: string
-        }
-        Insert: {
-          action_type: string
-          actor_id: string
-          created_at?: string
-          id?: string
-          metadata?: Json | null
-          target_id: string
-          target_table: string
-        }
-        Update: {
-          action_type?: string
-          actor_id?: string
-          created_at?: string
-          id?: string
-          metadata?: Json | null
-          target_id?: string
-          target_table?: string
-        }
-        Relationships: []
-      }
       app_settings: {
         Row: {
           created_at: string
@@ -68,182 +38,6 @@ export type Database = {
           description?: string | null
           id?: string
           key?: string
-          updated_at?: string
-          updated_by?: string | null
-          value?: string
-        }
-        Relationships: []
-      }
-      app_settings_history: {
-        Row: {
-          change_reason: string | null
-          changed_by: string | null
-          created_at: string
-          id: string
-          is_rollback: boolean
-          new_value: string
-          old_value: string | null
-          rolled_back_from: string | null
-          setting_key: string
-        }
-        Insert: {
-          change_reason?: string | null
-          changed_by?: string | null
-          created_at?: string
-          id?: string
-          is_rollback?: boolean
-          new_value: string
-          old_value?: string | null
-          rolled_back_from?: string | null
-          setting_key: string
-        }
-        Update: {
-          change_reason?: string | null
-          changed_by?: string | null
-          created_at?: string
-          id?: string
-          is_rollback?: boolean
-          new_value?: string
-          old_value?: string | null
-          rolled_back_from?: string | null
-          setting_key?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "app_settings_history_rolled_back_from_fkey"
-            columns: ["rolled_back_from"]
-            isOneToOne: false
-            referencedRelation: "app_settings_history"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      available_skills: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          deleted_at: string | null
-          deleted_by: string | null
-          description: string | null
-          display_order: number
-          id: string
-          is_active: boolean
-          is_deleted: boolean
-          name: string
-          updated_at: string
-          updated_by: string | null
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          deleted_at?: string | null
-          deleted_by?: string | null
-          description?: string | null
-          display_order?: number
-          id?: string
-          is_active?: boolean
-          is_deleted?: boolean
-          name: string
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          deleted_at?: string | null
-          deleted_by?: string | null
-          description?: string | null
-          display_order?: number
-          id?: string
-          is_active?: boolean
-          is_deleted?: boolean
-          name?: string
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Relationships: []
-      }
-      content_block_versions: {
-        Row: {
-          change_reason: string | null
-          content_block_id: string
-          created_at: string
-          created_by: string | null
-          description: string | null
-          id: string
-          is_active: boolean
-          key: string
-          type: string
-          value: string
-          version_number: number
-        }
-        Insert: {
-          change_reason?: string | null
-          content_block_id: string
-          created_at?: string
-          created_by?: string | null
-          description?: string | null
-          id?: string
-          is_active?: boolean
-          key: string
-          type: string
-          value: string
-          version_number?: number
-        }
-        Update: {
-          change_reason?: string | null
-          content_block_id?: string
-          created_at?: string
-          created_by?: string | null
-          description?: string | null
-          id?: string
-          is_active?: boolean
-          key?: string
-          type?: string
-          value?: string
-          version_number?: number
-        }
-        Relationships: []
-      }
-      content_blocks: {
-        Row: {
-          created_at: string
-          current_version: number
-          deleted_at: string | null
-          deleted_by: string | null
-          description: string | null
-          id: string
-          is_deleted: boolean
-          key: string
-          type: string
-          updated_at: string
-          updated_by: string | null
-          value: string
-        }
-        Insert: {
-          created_at?: string
-          current_version?: number
-          deleted_at?: string | null
-          deleted_by?: string | null
-          description?: string | null
-          id?: string
-          is_deleted?: boolean
-          key: string
-          type?: string
-          updated_at?: string
-          updated_by?: string | null
-          value?: string
-        }
-        Update: {
-          created_at?: string
-          current_version?: number
-          deleted_at?: string | null
-          deleted_by?: string | null
-          description?: string | null
-          id?: string
-          is_deleted?: boolean
-          key?: string
-          type?: string
           updated_at?: string
           updated_by?: string | null
           value?: string
@@ -330,30 +124,6 @@ export type Database = {
         }
         Relationships: []
       }
-      id_cards: {
-        Row: {
-          card_url: string
-          generated_at: string
-          generated_by: string
-          id: string
-          user_id: string
-        }
-        Insert: {
-          card_url: string
-          generated_at?: string
-          generated_by?: string
-          id?: string
-          user_id: string
-        }
-        Update: {
-          card_url?: string
-          generated_at?: string
-          generated_by?: string
-          id?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       payments: {
         Row: {
           amount: number
@@ -363,7 +133,6 @@ export type Database = {
           status: string
           student_id: string
           updated_at: string | null
-          verification_notes: string | null
         }
         Insert: {
           amount?: number
@@ -373,7 +142,6 @@ export type Database = {
           status?: string
           student_id: string
           updated_at?: string | null
-          verification_notes?: string | null
         }
         Update: {
           amount?: number
@@ -383,7 +151,6 @@ export type Database = {
           status?: string
           student_id?: string
           updated_at?: string | null
-          verification_notes?: string | null
         }
         Relationships: [
           {
@@ -395,107 +162,35 @@ export type Database = {
           },
         ]
       }
-      pending_actions: {
-        Row: {
-          action_tier: string
-          action_type: string
-          actor_id: string
-          affected_users_count: number | null
-          cancelled_at: string | null
-          cancelled_reason: string | null
-          created_at: string
-          executed_at: string | null
-          id: string
-          justification: string
-          payload: Json
-          scheduled_for: string
-          status: string
-          target_id: string | null
-          target_table: string | null
-        }
-        Insert: {
-          action_tier?: string
-          action_type: string
-          actor_id: string
-          affected_users_count?: number | null
-          cancelled_at?: string | null
-          cancelled_reason?: string | null
-          created_at?: string
-          executed_at?: string | null
-          id?: string
-          justification: string
-          payload?: Json
-          scheduled_for: string
-          status?: string
-          target_id?: string | null
-          target_table?: string | null
-        }
-        Update: {
-          action_tier?: string
-          action_type?: string
-          actor_id?: string
-          affected_users_count?: number | null
-          cancelled_at?: string | null
-          cancelled_reason?: string | null
-          created_at?: string
-          executed_at?: string | null
-          id?: string
-          justification?: string
-          payload?: Json
-          scheduled_for?: string
-          status?: string
-          target_id?: string | null
-          target_table?: string | null
-        }
-        Relationships: []
-      }
       profiles: {
         Row: {
-          account_locked: boolean
-          application_status: Database["public"]["Enums"]["application_status"]
-          banned: boolean
-          banned_reason: string | null
           created_at: string | null
           department: string
           email: string
           full_name: string
           id: string
-          locked_at: string | null
-          locked_by: string | null
           matric_number: string
           phone: string
           updated_at: string | null
           user_id: string
         }
         Insert: {
-          account_locked?: boolean
-          application_status?: Database["public"]["Enums"]["application_status"]
-          banned?: boolean
-          banned_reason?: string | null
           created_at?: string | null
           department: string
           email: string
           full_name: string
           id?: string
-          locked_at?: string | null
-          locked_by?: string | null
           matric_number: string
           phone: string
           updated_at?: string | null
           user_id: string
         }
         Update: {
-          account_locked?: boolean
-          application_status?: Database["public"]["Enums"]["application_status"]
-          banned?: boolean
-          banned_reason?: string | null
           created_at?: string | null
           department?: string
           email?: string
           full_name?: string
           id?: string
-          locked_at?: string | null
-          locked_by?: string | null
           matric_number?: string
           phone?: string
           updated_at?: string | null
@@ -547,9 +242,6 @@ export type Database = {
           skill_choice: string
           student_id: string
           submitted_at: string | null
-          verification_notes: string | null
-          verified_at: string | null
-          verified_by: string | null
         }
         Insert: {
           access_blocked?: boolean
@@ -561,9 +253,6 @@ export type Database = {
           skill_choice: string
           student_id: string
           submitted_at?: string | null
-          verification_notes?: string | null
-          verified_at?: string | null
-          verified_by?: string | null
         }
         Update: {
           access_blocked?: boolean
@@ -575,9 +264,6 @@ export type Database = {
           skill_choice?: string
           student_id?: string
           submitted_at?: string | null
-          verification_notes?: string | null
-          verified_at?: string | null
-          verified_by?: string | null
         }
         Relationships: [
           {
@@ -616,22 +302,7 @@ export type Database = {
     }
     Functions: {
       cleanup_old_rate_limits: { Args: never; Returns: undefined }
-      get_role_level: {
-        Args: { _role: Database["public"]["Enums"]["app_role"] }
-        Returns: number
-      }
-      get_user_highest_role: {
-        Args: { _user_id: string }
-        Returns: Database["public"]["Enums"]["app_role"]
-      }
       has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
-      has_role_or_higher: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
@@ -640,14 +311,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "student" | "super_admin" | "moderator"
-      application_status:
-        | "unpaid"
-        | "paid"
-        | "form_submitted"
-        | "form_verified"
-        | "form_rejected"
-        | "id_generated"
+      app_role: "admin" | "student"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -775,15 +439,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "student", "super_admin", "moderator"],
-      application_status: [
-        "unpaid",
-        "paid",
-        "form_submitted",
-        "form_verified",
-        "form_rejected",
-        "id_generated",
-      ],
+      app_role: ["admin", "student"],
     },
   },
 } as const
